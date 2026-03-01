@@ -1,0 +1,41 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: gophermart
+  description: gophermart service API in the OpenAPI 3.0 specification.
+servers:
+  - url: /
+    description: Current host
+paths:
+  /api/user/register:
+    post:
+      summary: register user
+      description: |
+        allows to register user with unique login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: пользователь успешно зарегистрирован и аутентифицирован
+        '400':
+          description: неверный формат запроса
+        '409':
+          description: логин уже занят
+        '500':
+          description: внутренняя ошибка сервера
+components:
+  schemas:
+    UserCredentials:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+        password:
+          type: string
