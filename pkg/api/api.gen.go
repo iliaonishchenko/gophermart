@@ -19,14 +19,14 @@ type UserCredentials struct {
 	Password string `json:"password"`
 }
 
-// PostApiUserRegisterJSONRequestBody defines body for PostApiUserRegister for application/json ContentType.
-type PostApiUserRegisterJSONRequestBody = UserCredentials
+// PostAPIUserRegisterJSONRequestBody defines body for PostAPIUserRegister for application/json ContentType.
+type PostAPIUserRegisterJSONRequestBody = UserCredentials
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// register user
 	// (POST /api/user/register)
-	PostApiUserRegister(w http.ResponseWriter, r *http.Request)
+	PostAPIUserRegister(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -35,7 +35,7 @@ type Unimplemented struct{}
 
 // register user
 // (POST /api/user/register)
-func (_ Unimplemented) PostApiUserRegister(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) PostAPIUserRegister(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -48,11 +48,11 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// PostApiUserRegister operation middleware
-func (siw *ServerInterfaceWrapper) PostApiUserRegister(w http.ResponseWriter, r *http.Request) {
+// PostAPIUserRegister operation middleware
+func (siw *ServerInterfaceWrapper) PostAPIUserRegister(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiUserRegister(w, r)
+		siw.Handler.PostAPIUserRegister(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -176,48 +176,54 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/user/register", wrapper.PostApiUserRegister)
+		r.Post(options.BaseURL+"/api/user/register", wrapper.PostAPIUserRegister)
 	})
 
 	return r
 }
 
-type PostApiUserRegisterRequestObject struct {
-	Body *PostApiUserRegisterJSONRequestBody
+type PostAPIUserRegisterRequestObject struct {
+	Body *PostAPIUserRegisterJSONRequestBody
 }
 
-type PostApiUserRegisterResponseObject interface {
-	VisitPostApiUserRegisterResponse(w http.ResponseWriter) error
+type PostAPIUserRegisterResponseObject interface {
+	VisitPostAPIUserRegisterResponse(w http.ResponseWriter) error
 }
 
-type PostApiUserRegister200Response struct {
+type PostAPIUserRegister200ResponseHeaders struct {
+	Authorization string
 }
 
-func (response PostApiUserRegister200Response) VisitPostApiUserRegisterResponse(w http.ResponseWriter) error {
+type PostAPIUserRegister200Response struct {
+	Headers PostAPIUserRegister200ResponseHeaders
+}
+
+func (response PostAPIUserRegister200Response) VisitPostAPIUserRegisterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Authorization", fmt.Sprint(response.Headers.Authorization))
 	w.WriteHeader(200)
 	return nil
 }
 
-type PostApiUserRegister400Response struct {
+type PostAPIUserRegister400Response struct {
 }
 
-func (response PostApiUserRegister400Response) VisitPostApiUserRegisterResponse(w http.ResponseWriter) error {
+func (response PostAPIUserRegister400Response) VisitPostAPIUserRegisterResponse(w http.ResponseWriter) error {
 	w.WriteHeader(400)
 	return nil
 }
 
-type PostApiUserRegister409Response struct {
+type PostAPIUserRegister409Response struct {
 }
 
-func (response PostApiUserRegister409Response) VisitPostApiUserRegisterResponse(w http.ResponseWriter) error {
+func (response PostAPIUserRegister409Response) VisitPostAPIUserRegisterResponse(w http.ResponseWriter) error {
 	w.WriteHeader(409)
 	return nil
 }
 
-type PostApiUserRegister500Response struct {
+type PostAPIUserRegister500Response struct {
 }
 
-func (response PostApiUserRegister500Response) VisitPostApiUserRegisterResponse(w http.ResponseWriter) error {
+func (response PostAPIUserRegister500Response) VisitPostAPIUserRegisterResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
@@ -226,7 +232,7 @@ func (response PostApiUserRegister500Response) VisitPostApiUserRegisterResponse(
 type StrictServerInterface interface {
 	// register user
 	// (POST /api/user/register)
-	PostApiUserRegister(ctx context.Context, request PostApiUserRegisterRequestObject) (PostApiUserRegisterResponseObject, error)
+	PostAPIUserRegister(ctx context.Context, request PostAPIUserRegisterRequestObject) (PostAPIUserRegisterResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -258,11 +264,11 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
-// PostApiUserRegister operation middleware
-func (sh *strictHandler) PostApiUserRegister(w http.ResponseWriter, r *http.Request) {
-	var request PostApiUserRegisterRequestObject
+// PostAPIUserRegister operation middleware
+func (sh *strictHandler) PostAPIUserRegister(w http.ResponseWriter, r *http.Request) {
+	var request PostAPIUserRegisterRequestObject
 
-	var body PostApiUserRegisterJSONRequestBody
+	var body PostAPIUserRegisterJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -270,18 +276,18 @@ func (sh *strictHandler) PostApiUserRegister(w http.ResponseWriter, r *http.Requ
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.PostApiUserRegister(ctx, request.(PostApiUserRegisterRequestObject))
+		return sh.ssi.PostAPIUserRegister(ctx, request.(PostAPIUserRegisterRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostApiUserRegister")
+		handler = middleware(handler, "PostAPIUserRegister")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(PostApiUserRegisterResponseObject); ok {
-		if err := validResponse.VisitPostApiUserRegisterResponse(w); err != nil {
+	} else if validResponse, ok := response.(PostAPIUserRegisterResponseObject); ok {
+		if err := validResponse.VisitPostAPIUserRegisterResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

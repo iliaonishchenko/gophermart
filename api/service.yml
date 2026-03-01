@@ -21,6 +21,11 @@ paths:
       responses:
         '200':
           description: пользователь успешно зарегистрирован и аутентифицирован
+          headers:
+            Authorization:
+              schema:
+                type: string
+              description: Bearer JWT токен
         '400':
           description: неверный формат запроса
         '409':
