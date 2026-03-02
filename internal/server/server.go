@@ -13,11 +13,11 @@ import (
 type Auth interface {
 	Authenticate(ctx context.Context, login, password string) (string, error)
 	GeneratePasswordHash(password string) (string, error)
-	GenerateToken(login string) (string, error)
+	GenerateToken(uuid *string) (string, error)
 }
 
 type UserService interface {
-	Create(ctx context.Context, user *models.User) error
+	Create(ctx context.Context, user *models.User) (*models.User, error)
 }
 
 type Server struct {
@@ -47,7 +47,7 @@ func (s *Server) PostAPIUserRegister(ctx context.Context, request api.PostAPIUse
 		PasswordHash: passwordHash,
 	}
 
-	err = s.userService.Create(ctx, &userToRegister)
+	user, err := s.userService.Create(ctx, &userToRegister)
 	if errors.Is(err, models.ErrUserAlreadyExists) {
 		logger.Log.Info("user already exists", zap.String("login", request.Body.Login))
 		return api.PostAPIUserRegister409Response{}, nil
@@ -57,7 +57,7 @@ func (s *Server) PostAPIUserRegister(ctx context.Context, request api.PostAPIUse
 		return nil, fmt.Errorf("could not create user: %w", err)
 	}
 
-	token, err := s.authService.GenerateToken(request.Body.Login)
+	token, err := s.authService.GenerateToken(user.ID)
 	if err != nil {
 		logger.Log.Error("could not generate token", logger.Err(err))
 		return nil, fmt.Errorf("could not generate token: %w", err)

@@ -23,23 +23,23 @@ func (r *Repository) Ping() error {
 	return r.db.Ping()
 }
 
-func (r *Repository) Create(ctx context.Context, user *models.User) error {
-	query := `INSERT INTO users (login, password_hash) VALUES ($1, $2)`
+func (r *Repository) Create(ctx context.Context, user *models.User) (*models.User, error) {
+	query := `INSERT INTO users (login, password_hash) VALUES ($1, $2) RETURNING id, created_at`
 
 	if user == nil {
-		return errors.New("user is nil")
+		return nil, errors.New("user is nil")
 	}
 
-	_, err := r.db.ExecContext(ctx, query, user.Login, user.PasswordHash)
+	err := r.db.QueryRowContext(ctx, query, user.Login, user.PasswordHash).Scan(&user.ID, &user.CreatedAt)
 	if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
-		return fmt.Errorf("%w: %s", models.ErrUserAlreadyExists, user.Login)
+		return nil, fmt.Errorf("%w: %s", models.ErrUserAlreadyExists, user.Login)
 	}
 	if err != nil {
 		logger.Log.Error("failed to create user in database", logger.Err(err))
-		return err
+		return nil, err
 	}
 
-	return nil
+	return user, nil
 }
 
 func (r *Repository) GetUserByLogin(ctx context.Context, login string) (*models.User, error) {

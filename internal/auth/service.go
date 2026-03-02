@@ -8,7 +8,7 @@ import (
 )
 
 type JwtGenerator interface {
-	GenerateToken(login string) (string, error)
+	GenerateToken(uuid *string) (string, error)
 }
 
 type UsersRepository interface {
@@ -33,15 +33,15 @@ func (as *AuthService) Authenticate(ctx context.Context, login, password string)
 	if err != nil {
 		return "", models.ErrInvalidCredentials
 	}
-	token, err := as.jwtGenerator.GenerateToken(user.Login)
+	token, err := as.jwtGenerator.GenerateToken(user.ID)
 	if err != nil {
 		return "", fmt.Errorf("could not generate token: %w", err)
 	}
 	return token, nil
 }
 
-func (as *AuthService) GenerateToken(login string) (string, error) {
-	return as.jwtGenerator.GenerateToken(login)
+func (as *AuthService) GenerateToken(uuid *string) (string, error) {
+	return as.jwtGenerator.GenerateToken(uuid)
 }
 
 func (as *AuthService) GeneratePasswordHash(password string) (string, error) {

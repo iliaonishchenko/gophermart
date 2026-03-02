@@ -6,7 +6,7 @@ import (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *models.User) error
+	Create(ctx context.Context, user *models.User) (*models.User, error)
 }
 
 type Service struct {
@@ -17,6 +17,6 @@ func NewService(userRepository UserRepository) *Service {
 	return &Service{userRepository: userRepository}
 }
 
-func (s *Service) Create(ctx context.Context, user *models.User) error {
+func (s *Service) Create(ctx context.Context, user *models.User) (*models.User, error) {
 	return s.userRepository.Create(ctx, user)
 }

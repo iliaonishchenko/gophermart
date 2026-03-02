@@ -12,19 +12,19 @@ type JwtService struct {
 
 type Claims struct {
 	jwt.RegisteredClaims
-	Login string
+	UUID string
 }
 
 func NewJwtService(cfg *config.Config) *JwtService {
 	return &JwtService{cfg: cfg}
 }
 
-func (jwts *JwtService) GenerateToken(login string) (string, error) {
+func (jwts *JwtService) GenerateToken(uuid *string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(jwts.cfg.JwtExpire))),
 		},
-		Login: login,
+		UUID: *uuid,
 	})
 	tokenString, err := token.SignedString([]byte(jwts.cfg.JwtSecret))
 	if err != nil {
