@@ -69,3 +69,26 @@ func (s *Server) PostAPIUserRegister(ctx context.Context, request api.PostAPIUse
 		},
 	}, nil
 }
+
+func (s *Server) PostAPIUserLogin(ctx context.Context, request api.PostAPIUserLoginRequestObject) (api.PostAPIUserLoginResponseObject, error) {
+	if request.Body.Login == "" || request.Body.Password == "" {
+		logger.Log.Debug("empty login or password")
+		return api.PostAPIUserLogin400Response{}, nil
+	}
+
+	token, err := s.authService.Authenticate(ctx, request.Body.Login, request.Body.Password)
+	if errors.Is(err, models.ErrInvalidCredentials) {
+		logger.Log.Error("invalid credentials", logger.Err(err))
+		return api.PostAPIUserLogin401Response{}, nil
+	}
+	if err != nil {
+		logger.Log.Error("could not authenticate", logger.Err(err))
+		return api.PostAPIUserLogin500Response{}, nil
+	}
+
+	return api.PostAPIUserLogin200Response{
+		Headers: api.PostAPIUserLogin200ResponseHeaders{
+			Authorization: "Bearer " + token,
+		},
+	}, nil
+}

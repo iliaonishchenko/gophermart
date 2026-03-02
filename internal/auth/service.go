@@ -31,7 +31,7 @@ func (as *AuthService) Authenticate(ctx context.Context, login, password string)
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return "", fmt.Errorf("invalid password: %w", err)
+		return "", models.ErrInvalidCredentials
 	}
 	token, err := as.jwtGenerator.GenerateToken(user.Login)
 	if err != nil {

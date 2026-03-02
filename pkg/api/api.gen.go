@@ -19,11 +19,17 @@ type UserCredentials struct {
 	Password string `json:"password"`
 }
 
+// PostAPIUserLoginJSONRequestBody defines body for PostAPIUserLogin for application/json ContentType.
+type PostAPIUserLoginJSONRequestBody = UserCredentials
+
 // PostAPIUserRegisterJSONRequestBody defines body for PostAPIUserRegister for application/json ContentType.
 type PostAPIUserRegisterJSONRequestBody = UserCredentials
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// login user
+	// (POST /api/user/login)
+	PostAPIUserLogin(w http.ResponseWriter, r *http.Request)
 	// register user
 	// (POST /api/user/register)
 	PostAPIUserRegister(w http.ResponseWriter, r *http.Request)
@@ -32,6 +38,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// login user
+// (POST /api/user/login)
+func (_ Unimplemented) PostAPIUserLogin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // register user
 // (POST /api/user/register)
@@ -47,6 +59,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// PostAPIUserLogin operation middleware
+func (siw *ServerInterfaceWrapper) PostAPIUserLogin(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAPIUserLogin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // PostAPIUserRegister operation middleware
 func (siw *ServerInterfaceWrapper) PostAPIUserRegister(w http.ResponseWriter, r *http.Request) {
@@ -176,10 +202,59 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/user/login", wrapper.PostAPIUserLogin)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/register", wrapper.PostAPIUserRegister)
 	})
 
 	return r
+}
+
+type PostAPIUserLoginRequestObject struct {
+	Body *PostAPIUserLoginJSONRequestBody
+}
+
+type PostAPIUserLoginResponseObject interface {
+	VisitPostAPIUserLoginResponse(w http.ResponseWriter) error
+}
+
+type PostAPIUserLogin200ResponseHeaders struct {
+	Authorization string
+}
+
+type PostAPIUserLogin200Response struct {
+	Headers PostAPIUserLogin200ResponseHeaders
+}
+
+func (response PostAPIUserLogin200Response) VisitPostAPIUserLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Authorization", fmt.Sprint(response.Headers.Authorization))
+	w.WriteHeader(200)
+	return nil
+}
+
+type PostAPIUserLogin400Response struct {
+}
+
+func (response PostAPIUserLogin400Response) VisitPostAPIUserLoginResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostAPIUserLogin401Response struct {
+}
+
+func (response PostAPIUserLogin401Response) VisitPostAPIUserLoginResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PostAPIUserLogin500Response struct {
+}
+
+func (response PostAPIUserLogin500Response) VisitPostAPIUserLoginResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
 }
 
 type PostAPIUserRegisterRequestObject struct {
@@ -230,6 +305,9 @@ func (response PostAPIUserRegister500Response) VisitPostAPIUserRegisterResponse(
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// login user
+	// (POST /api/user/login)
+	PostAPIUserLogin(ctx context.Context, request PostAPIUserLoginRequestObject) (PostAPIUserLoginResponseObject, error)
 	// register user
 	// (POST /api/user/register)
 	PostAPIUserRegister(ctx context.Context, request PostAPIUserRegisterRequestObject) (PostAPIUserRegisterResponseObject, error)
@@ -262,6 +340,37 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// PostAPIUserLogin operation middleware
+func (sh *strictHandler) PostAPIUserLogin(w http.ResponseWriter, r *http.Request) {
+	var request PostAPIUserLoginRequestObject
+
+	var body PostAPIUserLoginJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostAPIUserLogin(ctx, request.(PostAPIUserLoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostAPIUserLogin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostAPIUserLoginResponseObject); ok {
+		if err := validResponse.VisitPostAPIUserLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // PostAPIUserRegister operation middleware

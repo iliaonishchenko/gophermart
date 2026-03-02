@@ -32,6 +32,31 @@ paths:
           description: логин уже занят
         '500':
           description: внутренняя ошибка сервера
+  /api/user/login:
+    post:
+      summary: login user
+      description: |
+        allows to login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: пользователь успешно аутентифицирован
+          headers:
+            Authorization:
+              schema:
+                type: string
+              description: Bearer JWT токен
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: неверная пара логин/пароль
+        '500':
+          description: внутренняя ошибка сервера
 components:
   schemas:
     UserCredentials:
