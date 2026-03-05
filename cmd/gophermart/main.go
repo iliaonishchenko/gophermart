@@ -25,11 +25,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	parseFlags(cfg)
+
 	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		log.Fatal(err)
 	}
 
-	db, err := sql.Open("pgx", cfg.DatabaseDSN)
+	db, err := sql.Open("pgx", cfg.DatabaseURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,7 +66,7 @@ func main() {
 
 	handler := r
 
-	err = http.ListenAndServe(":8080", handler)
+	err = http.ListenAndServe(cfg.ServerAddr, handler)
 	if err != nil {
 		return
 	}

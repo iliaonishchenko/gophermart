@@ -8,7 +8,9 @@ type Config struct {
 	JwtSecret   string `env:"JWT_SECRET"`
 	JwtExpire   int    `env:"JWT_EXPIRE" envDefault:"31556952"`
 	LogLevel    string `env:"LOG_LEVEL" envDefault:"info"`
-	DatabaseDSN string `env:"DATABASE_DSN"`
+	DatabaseURI string `env:"DATABASE_URI"`
+	ServerAddr  string `env:"RUN_ADDRESS"`
+	AccrualAddr string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 }
 
 func LoadConfig() (*Config, error) {
