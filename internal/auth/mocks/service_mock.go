@@ -36,18 +36,18 @@ func (m *MockJwtGenerator) EXPECT() *MockJwtGeneratorMockRecorder {
 }
 
 // GenerateToken mocks base method.
-func (m *MockJwtGenerator) GenerateToken(login string) (string, error) {
+func (m *MockJwtGenerator) GenerateToken(uuid *string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateToken", login)
+	ret := m.ctrl.Call(m, "GenerateToken", uuid)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateToken indicates an expected call of GenerateToken.
-func (mr *MockJwtGeneratorMockRecorder) GenerateToken(login interface{}) *gomock.Call {
+func (mr *MockJwtGeneratorMockRecorder) GenerateToken(uuid interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockJwtGenerator)(nil).GenerateToken), login)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockJwtGenerator)(nil).GenerateToken), uuid)
 }
 
 // MockUsersRepository is a mock of UsersRepository interface.

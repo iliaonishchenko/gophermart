@@ -57,8 +57,76 @@ paths:
           description: неверная пара логин/пароль
         '500':
           description: внутренняя ошибка сервера
+  /api/user/orders:
+    post:
+      summary: upload users order
+      description: |
+        Загрузка номера заказа
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+           description: номер заказа уже был загружен этим пользователем
+        '202':
+           description: новый номер заказа принят в обработку
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: пользователь не аутентифицирован
+        '409':
+          description: номер заказа уже был загружен другим пользователем
+        '422':
+          description: неверный формат номера заказа
+        '500':
+          description: внутренняя ошибка сервера
+    get:
+      summary: get user orders
+      description: |
+        Получение списка загруженных номеров заказов.
+        Номера заказа в выдаче отсортированы по времени загрузки от самых новых к самым старым.
+        Формат даты — RFC3339.
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '204':
+          description: нет данных для ответа
+        '401':
+          description: пользователь не авторизован
+        '500':
+          description: внутренняя ошибка сервера
 components:
   schemas:
+    Order:
+      type: object
+      required:
+        - number
+        - status
+        - uploaded_at
+      properties:
+        number:
+          type: string
+        status:
+          type: string
+          enum:
+            - NEW
+            - PROCESSING
+            - INVALID
+            - PROCESSED
+        accrual:
+          type: number
+        uploaded_at:
+          type: string
+          format: date-time
     UserCredentials:
       type: object
       required:

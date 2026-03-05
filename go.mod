@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang/mock v1.6.0
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/pressly/goose/v3 v3.24.1

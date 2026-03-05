@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	JwtSecret   string `env:"JWT_SECRET"`
-	JwtExpire   int    `env:"JWT_EXPIRE"`
+	JwtExpire   int    `env:"JWT_EXPIRE" envDefault:"31556952"`
 	LogLevel    string `env:"LOG_LEVEL" envDefault:"info"`
 	DatabaseDSN string `env:"DATABASE_DSN"`
 }

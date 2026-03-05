@@ -15,6 +15,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func strPtr(s string) *string {
+	return &s
+}
+
 func hashPassword(t *testing.T, password string) string {
 	t.Helper()
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -36,13 +40,15 @@ func TestAuthenticate(t *testing.T) {
 			login:    "testuser",
 			password: "secret",
 			mockSetup: func(repo *mocks.MockUsersRepository, jwt *mocks.MockJwtGenerator) {
+				userID := strPtr("user-uuid")
 				user := &models.User{
+					ID:           userID,
 					Login:        "testuser",
 					PasswordHash: hashPassword(t, "secret"),
 					CreatedAt:    time.Now(),
 				}
 				repo.EXPECT().GetUserByLogin(gomock.Any(), "testuser").Return(user, nil)
-				jwt.EXPECT().GenerateToken("testuser").Return("jwt-token", nil)
+				jwt.EXPECT().GenerateToken(userID).Return("jwt-token", nil)
 			},
 			wantToken: "jwt-token",
 			wantErr:   false,
@@ -77,13 +83,15 @@ func TestAuthenticate(t *testing.T) {
 			login:    "testuser",
 			password: "secret",
 			mockSetup: func(repo *mocks.MockUsersRepository, jwt *mocks.MockJwtGenerator) {
+				userID := strPtr("user-uuid")
 				user := &models.User{
+					ID:           userID,
 					Login:        "testuser",
 					PasswordHash: hashPassword(t, "secret"),
 					CreatedAt:    time.Now(),
 				}
 				repo.EXPECT().GetUserByLogin(gomock.Any(), "testuser").Return(user, nil)
-				jwt.EXPECT().GenerateToken("testuser").Return("", errors.New("signing error"))
+				jwt.EXPECT().GenerateToken(userID).Return("", errors.New("signing error"))
 			},
 			wantToken: "",
 			wantErr:   true,

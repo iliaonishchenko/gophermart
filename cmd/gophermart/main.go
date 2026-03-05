@@ -8,6 +8,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/auth"
 	"github.com/iliaonishchenko/gophermart/internal/config"
 	"github.com/iliaonishchenko/gophermart/internal/logger"
+	"github.com/iliaonishchenko/gophermart/internal/orders"
 	"github.com/iliaonishchenko/gophermart/internal/server"
 	"github.com/iliaonishchenko/gophermart/internal/users"
 	"github.com/iliaonishchenko/gophermart/pkg/api"
@@ -42,13 +43,26 @@ func main() {
 	authService := auth.NewAuthService(usersRepo, jwtService)
 	userService := users.NewService(usersRepo)
 
-	srv := server.NewServer(authService, userService)
+	ordersRepo := orders.NewRepository(db)
+	ordersService := orders.NewService(ordersRepo)
+
+	srv := server.NewServer(authService, userService, ordersService)
 
 	r := chi.NewRouter()
 	r.Use(logger.WithLogger)
 
 	strictHandler := api.NewStrictHandler(srv, nil)
-	handler := api.HandlerFromMux(strictHandler, r)
+
+	r.Post("/api/user/register", strictHandler.PostAPIUserRegister)
+	r.Post("/api/user/login", strictHandler.PostAPIUserLogin)
+
+	r.Group(func(r chi.Router) {
+		r.Use(auth.AuthMiddleware(jwtService))
+		r.Post("/api/user/orders", strictHandler.PostAPIUserOrders)
+		r.Get("/api/user/orders", strictHandler.GetAPIUserOrders)
+	})
+
+	handler := r
 
 	err = http.ListenAndServe(":8080", handler)
 	if err != nil {

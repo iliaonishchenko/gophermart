@@ -7,11 +7,32 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
+
+// Defines values for OrderStatus.
+const (
+	INVALID    OrderStatus = "INVALID"
+	NEW        OrderStatus = "NEW"
+	PROCESSED  OrderStatus = "PROCESSED"
+	PROCESSING OrderStatus = "PROCESSING"
+)
+
+// Order defines model for Order.
+type Order struct {
+	Accrual    *float32    `json:"accrual,omitempty"`
+	Number     string      `json:"number"`
+	Status     OrderStatus `json:"status"`
+	UploadedAt time.Time   `json:"uploaded_at"`
+}
+
+// OrderStatus defines model for Order.Status.
+type OrderStatus string
 
 // UserCredentials defines model for UserCredentials.
 type UserCredentials struct {
@@ -19,8 +40,14 @@ type UserCredentials struct {
 	Password string `json:"password"`
 }
 
+// PostAPIUserOrdersTextBody defines parameters for PostAPIUserOrders.
+type PostAPIUserOrdersTextBody = string
+
 // PostAPIUserLoginJSONRequestBody defines body for PostAPIUserLogin for application/json ContentType.
 type PostAPIUserLoginJSONRequestBody = UserCredentials
+
+// PostAPIUserOrdersTextRequestBody defines body for PostAPIUserOrders for text/plain ContentType.
+type PostAPIUserOrdersTextRequestBody = PostAPIUserOrdersTextBody
 
 // PostAPIUserRegisterJSONRequestBody defines body for PostAPIUserRegister for application/json ContentType.
 type PostAPIUserRegisterJSONRequestBody = UserCredentials
@@ -30,6 +57,12 @@ type ServerInterface interface {
 	// login user
 	// (POST /api/user/login)
 	PostAPIUserLogin(w http.ResponseWriter, r *http.Request)
+	// get user orders
+	// (GET /api/user/orders)
+	GetAPIUserOrders(w http.ResponseWriter, r *http.Request)
+	// upload users order
+	// (POST /api/user/orders)
+	PostAPIUserOrders(w http.ResponseWriter, r *http.Request)
 	// register user
 	// (POST /api/user/register)
 	PostAPIUserRegister(w http.ResponseWriter, r *http.Request)
@@ -42,6 +75,18 @@ type Unimplemented struct{}
 // login user
 // (POST /api/user/login)
 func (_ Unimplemented) PostAPIUserLogin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// get user orders
+// (GET /api/user/orders)
+func (_ Unimplemented) GetAPIUserOrders(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// upload users order
+// (POST /api/user/orders)
+func (_ Unimplemented) PostAPIUserOrders(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -65,6 +110,34 @@ func (siw *ServerInterfaceWrapper) PostAPIUserLogin(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostAPIUserLogin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAPIUserOrders operation middleware
+func (siw *ServerInterfaceWrapper) GetAPIUserOrders(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAPIUserOrders(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAPIUserOrders operation middleware
+func (siw *ServerInterfaceWrapper) PostAPIUserOrders(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAPIUserOrders(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -205,6 +278,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/user/login", wrapper.PostAPIUserLogin)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/user/orders", wrapper.GetAPIUserOrders)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/user/orders", wrapper.PostAPIUserOrders)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/register", wrapper.PostAPIUserRegister)
 	})
 
@@ -253,6 +332,110 @@ type PostAPIUserLogin500Response struct {
 }
 
 func (response PostAPIUserLogin500Response) VisitPostAPIUserLoginResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type GetAPIUserOrdersRequestObject struct {
+}
+
+type GetAPIUserOrdersResponseObject interface {
+	VisitGetAPIUserOrdersResponse(w http.ResponseWriter) error
+}
+
+type GetAPIUserOrders200JSONResponse []Order
+
+func (response GetAPIUserOrders200JSONResponse) VisitGetAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAPIUserOrders204Response struct {
+}
+
+func (response GetAPIUserOrders204Response) VisitGetAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type GetAPIUserOrders401Response struct {
+}
+
+func (response GetAPIUserOrders401Response) VisitGetAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetAPIUserOrders500Response struct {
+}
+
+func (response GetAPIUserOrders500Response) VisitGetAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
+type PostAPIUserOrdersRequestObject struct {
+	Body *PostAPIUserOrdersTextRequestBody
+}
+
+type PostAPIUserOrdersResponseObject interface {
+	VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error
+}
+
+type PostAPIUserOrders200Response struct {
+}
+
+func (response PostAPIUserOrders200Response) VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type PostAPIUserOrders202Response struct {
+}
+
+func (response PostAPIUserOrders202Response) VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type PostAPIUserOrders400Response struct {
+}
+
+func (response PostAPIUserOrders400Response) VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostAPIUserOrders401Response struct {
+}
+
+func (response PostAPIUserOrders401Response) VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PostAPIUserOrders409Response struct {
+}
+
+func (response PostAPIUserOrders409Response) VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(409)
+	return nil
+}
+
+type PostAPIUserOrders422Response struct {
+}
+
+func (response PostAPIUserOrders422Response) VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error {
+	w.WriteHeader(422)
+	return nil
+}
+
+type PostAPIUserOrders500Response struct {
+}
+
+func (response PostAPIUserOrders500Response) VisitPostAPIUserOrdersResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
@@ -308,6 +491,12 @@ type StrictServerInterface interface {
 	// login user
 	// (POST /api/user/login)
 	PostAPIUserLogin(ctx context.Context, request PostAPIUserLoginRequestObject) (PostAPIUserLoginResponseObject, error)
+	// get user orders
+	// (GET /api/user/orders)
+	GetAPIUserOrders(ctx context.Context, request GetAPIUserOrdersRequestObject) (GetAPIUserOrdersResponseObject, error)
+	// upload users order
+	// (POST /api/user/orders)
+	PostAPIUserOrders(ctx context.Context, request PostAPIUserOrdersRequestObject) (PostAPIUserOrdersResponseObject, error)
 	// register user
 	// (POST /api/user/register)
 	PostAPIUserRegister(ctx context.Context, request PostAPIUserRegisterRequestObject) (PostAPIUserRegisterResponseObject, error)
@@ -366,6 +555,62 @@ func (sh *strictHandler) PostAPIUserLogin(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PostAPIUserLoginResponseObject); ok {
 		if err := validResponse.VisitPostAPIUserLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAPIUserOrders operation middleware
+func (sh *strictHandler) GetAPIUserOrders(w http.ResponseWriter, r *http.Request) {
+	var request GetAPIUserOrdersRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAPIUserOrders(ctx, request.(GetAPIUserOrdersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAPIUserOrders")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAPIUserOrdersResponseObject); ok {
+		if err := validResponse.VisitGetAPIUserOrdersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PostAPIUserOrders operation middleware
+func (sh *strictHandler) PostAPIUserOrders(w http.ResponseWriter, r *http.Request) {
+	var request PostAPIUserOrdersRequestObject
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := PostAPIUserOrdersTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostAPIUserOrders(ctx, request.(PostAPIUserOrdersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostAPIUserOrders")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostAPIUserOrdersResponseObject); ok {
+		if err := validResponse.VisitPostAPIUserOrdersResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
