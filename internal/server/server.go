@@ -25,18 +25,24 @@ type WithdrawalService interface {
 	Get(ctx context.Context) ([]*models.Withdrawal, error)
 }
 
+type BalanceService interface {
+	Get(ctx context.Context) (*models.Balance, error)
+}
+
 type Server struct {
 	authService       Auth
 	userService       UserService
 	orderService      OrderService
 	withdrawalService WithdrawalService
+	balanceService    BalanceService
 }
 
-func NewServer(authService Auth, userService UserService, orderService OrderService, withdrawalService WithdrawalService) *Server {
+func NewServer(auth Auth, userService UserService, orderService OrderService, withdrawalService WithdrawalService, balanceService BalanceService) *Server {
 	return &Server{
-		authService:       authService,
+		authService:       auth,
 		userService:       userService,
 		orderService:      orderService,
 		withdrawalService: withdrawalService,
+		balanceService:    balanceService,
 	}
 }

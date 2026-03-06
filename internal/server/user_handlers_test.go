@@ -16,7 +16,7 @@ func TestPostAPIUserRegister(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserRegister(context.Background(), api.PostAPIUserRegisterRequestObject{
 			Body: &api.UserCredentials{Login: "", Password: "pass"},
@@ -30,7 +30,7 @@ func TestPostAPIUserRegister(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserRegister(context.Background(), api.PostAPIUserRegisterRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: ""},
@@ -47,7 +47,7 @@ func TestPostAPIUserRegister(t *testing.T) {
 		mockAuth := mocks.NewMockAuth(ctrl)
 		mockAuth.EXPECT().GeneratePasswordHash("pass").Return("", errors.New("hash error"))
 
-		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserRegister(context.Background(), api.PostAPIUserRegisterRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "pass"},
@@ -67,7 +67,7 @@ func TestPostAPIUserRegister(t *testing.T) {
 		mockUsers := mocks.NewMockUserService(ctrl)
 		mockUsers.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, models.ErrUserAlreadyExists)
 
-		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserRegister(context.Background(), api.PostAPIUserRegisterRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "pass"},
@@ -87,7 +87,7 @@ func TestPostAPIUserRegister(t *testing.T) {
 		mockUsers := mocks.NewMockUserService(ctrl)
 		mockUsers.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
 
-		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserRegister(context.Background(), api.PostAPIUserRegisterRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "pass"},
@@ -109,7 +109,7 @@ func TestPostAPIUserRegister(t *testing.T) {
 		mockUsers := mocks.NewMockUserService(ctrl)
 		mockUsers.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&models.User{ID: &userID}, nil)
 
-		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserRegister(context.Background(), api.PostAPIUserRegisterRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "pass"},
@@ -131,7 +131,7 @@ func TestPostAPIUserRegister(t *testing.T) {
 		mockUsers := mocks.NewMockUserService(ctrl)
 		mockUsers.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&models.User{ID: &userID}, nil)
 
-		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mockUsers, mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserRegister(context.Background(), api.PostAPIUserRegisterRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "pass"},
@@ -149,7 +149,7 @@ func TestPostAPIUserLogin(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserLogin(context.Background(), api.PostAPIUserLoginRequestObject{
 			Body: &api.UserCredentials{Login: "", Password: "pass"},
@@ -163,7 +163,7 @@ func TestPostAPIUserLogin(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserLogin(context.Background(), api.PostAPIUserLoginRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: ""},
@@ -180,7 +180,7 @@ func TestPostAPIUserLogin(t *testing.T) {
 		mockAuth := mocks.NewMockAuth(ctrl)
 		mockAuth.EXPECT().Authenticate(gomock.Any(), "user", "wrong").Return("", models.ErrInvalidCredentials)
 
-		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserLogin(context.Background(), api.PostAPIUserLoginRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "wrong"},
@@ -197,7 +197,7 @@ func TestPostAPIUserLogin(t *testing.T) {
 		mockAuth := mocks.NewMockAuth(ctrl)
 		mockAuth.EXPECT().Authenticate(gomock.Any(), "user", "pass").Return("", errors.New("db error"))
 
-		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserLogin(context.Background(), api.PostAPIUserLoginRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "pass"},
@@ -214,7 +214,7 @@ func TestPostAPIUserLogin(t *testing.T) {
 		mockAuth := mocks.NewMockAuth(ctrl)
 		mockAuth.EXPECT().Authenticate(gomock.Any(), "user", "pass").Return("jwt-token", nil)
 
-		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl))
+		srv := NewServer(mockAuth, mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl))
 
 		resp, err := srv.PostAPIUserLogin(context.Background(), api.PostAPIUserLoginRequestObject{
 			Body: &api.UserCredentials{Login: "user", Password: "pass"},

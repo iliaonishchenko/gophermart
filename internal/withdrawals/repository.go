@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/iliaonishchenko/gophermart/internal/auth"
+	"github.com/iliaonishchenko/gophermart/internal/logger"
 	"github.com/iliaonishchenko/gophermart/internal/models"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -33,16 +34,38 @@ func (r *Repository) Create(ctx context.Context, withdrawalToCreate *models.With
 		return nil, errors.New("withdrawal is nil")
 	}
 
-	err := r.db.QueryRowContext(ctx, query, withdrawalToCreate.Order, userUUID, withdrawalToCreate.Sum).Scan(&withdrawalToCreate.ProcessedAt)
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		logger.Log.Error("transaction begin failed", logger.Err(err))
+		return nil, err
+	}
+	defer tx.Rollback()
 
+	var balance float32
+	checkBalanceQuery := "SELECT balance FROM balances WHERE user_id = $1"
+	err = tx.QueryRowContext(ctx, checkBalanceQuery, userUUID).Scan(&balance)
+	if errors.Is(err, sql.ErrNoRows) {
+		balance = 0
+	} else if err != nil {
+		logger.Log.Error("check balance for withdrawal failed", logger.Err(err))
+		return nil, err
+	}
+
+	if withdrawalToCreate.Sum > balance {
+		return nil, models.ErrWithdrawalNotEnoughFunds
+	}
+
+	err = tx.QueryRowContext(ctx, query, withdrawalToCreate.Order, userUUID, withdrawalToCreate.Sum).Scan(&withdrawalToCreate.ProcessedAt)
 	if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23503" {
 		return nil, models.ErrWithdrawalNonExistentOrder
 	}
-
-	// todo check if user has enough funds to perform the operation
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert withdrawal: %w", err)
+	}
+	err = tx.Commit()
+	if err != nil {
+		logger.Log.Error("transaction commit failed", logger.Err(err))
+		return nil, err
 	}
 
 	return withdrawalToCreate, nil

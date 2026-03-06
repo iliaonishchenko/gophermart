@@ -23,6 +23,12 @@ const (
 	PROCESSING OrderStatus = "PROCESSING"
 )
 
+// Balance defines model for Balance.
+type Balance struct {
+	Current   float32 `json:"current"`
+	Withdrawn float32 `json:"withdrawn"`
+}
+
 // Order defines model for Order.
 type Order struct {
 	Accrual    *float32    `json:"accrual,omitempty"`
@@ -70,6 +76,9 @@ type PostAPIUserRegisterJSONRequestBody = UserCredentials
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Получение текущего баланса пользователя
+	// (GET /api/user/balance)
+	GetAPIUserBalance(w http.ResponseWriter, r *http.Request)
 	// create a new withdrawal for user
 	// (POST /api/user/balance/withdraw)
 	PostAPIUserBalanceWithdraw(w http.ResponseWriter, r *http.Request)
@@ -93,6 +102,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Получение текущего баланса пользователя
+// (GET /api/user/balance)
+func (_ Unimplemented) GetAPIUserBalance(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // create a new withdrawal for user
 // (POST /api/user/balance/withdraw)
@@ -138,6 +153,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetAPIUserBalance operation middleware
+func (siw *ServerInterfaceWrapper) GetAPIUserBalance(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAPIUserBalance(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // PostAPIUserBalanceWithdraw operation middleware
 func (siw *ServerInterfaceWrapper) PostAPIUserBalanceWithdraw(w http.ResponseWriter, r *http.Request) {
@@ -337,6 +366,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/user/balance", wrapper.GetAPIUserBalance)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/balance/withdraw", wrapper.PostAPIUserBalanceWithdraw)
 	})
 	r.Group(func(r chi.Router) {
@@ -356,6 +388,38 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 
 	return r
+}
+
+type GetAPIUserBalanceRequestObject struct {
+}
+
+type GetAPIUserBalanceResponseObject interface {
+	VisitGetAPIUserBalanceResponse(w http.ResponseWriter) error
+}
+
+type GetAPIUserBalance200JSONResponse Balance
+
+func (response GetAPIUserBalance200JSONResponse) VisitGetAPIUserBalanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAPIUserBalance401Response struct {
+}
+
+func (response GetAPIUserBalance401Response) VisitGetAPIUserBalanceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetAPIUserBalance500Response struct {
+}
+
+func (response GetAPIUserBalance500Response) VisitGetAPIUserBalanceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
 }
 
 type PostAPIUserBalanceWithdrawRequestObject struct {
@@ -652,6 +716,9 @@ func (response GetAPIUserWithdrawals500Response) VisitGetAPIUserWithdrawalsRespo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Получение текущего баланса пользователя
+	// (GET /api/user/balance)
+	GetAPIUserBalance(ctx context.Context, request GetAPIUserBalanceRequestObject) (GetAPIUserBalanceResponseObject, error)
 	// create a new withdrawal for user
 	// (POST /api/user/balance/withdraw)
 	PostAPIUserBalanceWithdraw(ctx context.Context, request PostAPIUserBalanceWithdrawRequestObject) (PostAPIUserBalanceWithdrawResponseObject, error)
@@ -699,6 +766,30 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetAPIUserBalance operation middleware
+func (sh *strictHandler) GetAPIUserBalance(w http.ResponseWriter, r *http.Request) {
+	var request GetAPIUserBalanceRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAPIUserBalance(ctx, request.(GetAPIUserBalanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAPIUserBalance")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAPIUserBalanceResponseObject); ok {
+		if err := validResponse.VisitGetAPIUserBalanceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // PostAPIUserBalanceWithdraw operation middleware

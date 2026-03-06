@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/iliaonishchenko/gophermart"
 	"github.com/iliaonishchenko/gophermart/internal/auth"
+	"github.com/iliaonishchenko/gophermart/internal/balance"
 	"github.com/iliaonishchenko/gophermart/internal/config"
 	"github.com/iliaonishchenko/gophermart/internal/logger"
 	"github.com/iliaonishchenko/gophermart/internal/orders"
@@ -52,7 +53,10 @@ func main() {
 	withdrawalsRepo := withdrawals.NewRepository(db)
 	withdrawalsService := withdrawals.NewService(withdrawalsRepo)
 
-	srv := server.NewServer(authService, userService, ordersService, withdrawalsService)
+	balanceRepo := balance.NewRepository(db)
+	balanceService := balance.NewService(balanceRepo)
+
+	srv := server.NewServer(authService, userService, ordersService, withdrawalsService, balanceService)
 
 	r := chi.NewRouter()
 	r.Use(logger.WithLogger)
@@ -68,6 +72,7 @@ func main() {
 		r.Get("/api/user/orders", strictHandler.GetAPIUserOrders)
 		r.Post("/api/user/balance/withdraw", strictHandler.PostAPIUserBalanceWithdraw)
 		r.Get("/api/user/withdrawals", strictHandler.GetAPIUserWithdrawals)
+		r.Get("/api/user/balance", strictHandler.GetAPIUserBalance)
 	})
 
 	handler := r

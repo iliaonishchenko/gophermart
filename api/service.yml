@@ -104,6 +104,20 @@ paths:
           description: пользователь не авторизован
         '500':
           description: внутренняя ошибка сервера
+  /api/user/balance:
+    get:
+      summary: Получение текущего баланса пользователя
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Balance"
+        '401':
+          description: пользователь не авторизован
+        '500':
+          description: внутренняя ошибка сервера
   /api/user/balance/withdraw:
     post:
       summary: create a new withdrawal for user
@@ -204,4 +218,14 @@ components:
           type: number
         processed_at:
           type: string
+    Balance:
+      type: object
+      required:
+        - current
+        - withdrawn
+      properties:
+        current:
+          type: number
+        withdrawn:
+          type: number
 
