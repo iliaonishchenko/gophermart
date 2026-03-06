@@ -20,16 +20,23 @@ type OrderService interface {
 	Get(ctx context.Context, userUUID *string) ([]*models.Order, error)
 }
 
-type Server struct {
-	authService  Auth
-	userService  UserService
-	orderService OrderService
+type WithdrawalService interface {
+	Create(ctx context.Context, withdrawalToCreate *models.Withdrawal) (*models.Withdrawal, error)
+	Get(ctx context.Context) ([]*models.Withdrawal, error)
 }
 
-func NewServer(authService Auth, userService UserService, orderService OrderService) *Server {
+type Server struct {
+	authService       Auth
+	userService       UserService
+	orderService      OrderService
+	withdrawalService WithdrawalService
+}
+
+func NewServer(authService Auth, userService UserService, orderService OrderService, withdrawalService WithdrawalService) *Server {
 	return &Server{
-		authService:  authService,
-		userService:  userService,
-		orderService: orderService,
+		authService:       authService,
+		userService:       userService,
+		orderService:      orderService,
+		withdrawalService: withdrawalService,
 	}
 }

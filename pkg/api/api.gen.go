@@ -40,8 +40,24 @@ type UserCredentials struct {
 	Password string `json:"password"`
 }
 
+// WithdrawalRequest defines model for WithdrawalRequest.
+type WithdrawalRequest struct {
+	Order string  `json:"order"`
+	Sum   float32 `json:"sum"`
+}
+
+// WithdrawalResponse defines model for WithdrawalResponse.
+type WithdrawalResponse struct {
+	Order       string  `json:"order"`
+	ProcessedAt string  `json:"processed_at"`
+	Sum         float32 `json:"sum"`
+}
+
 // PostAPIUserOrdersTextBody defines parameters for PostAPIUserOrders.
 type PostAPIUserOrdersTextBody = string
+
+// PostAPIUserBalanceWithdrawJSONRequestBody defines body for PostAPIUserBalanceWithdraw for application/json ContentType.
+type PostAPIUserBalanceWithdrawJSONRequestBody = WithdrawalRequest
 
 // PostAPIUserLoginJSONRequestBody defines body for PostAPIUserLogin for application/json ContentType.
 type PostAPIUserLoginJSONRequestBody = UserCredentials
@@ -54,6 +70,9 @@ type PostAPIUserRegisterJSONRequestBody = UserCredentials
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// create a new withdrawal for user
+	// (POST /api/user/balance/withdraw)
+	PostAPIUserBalanceWithdraw(w http.ResponseWriter, r *http.Request)
 	// login user
 	// (POST /api/user/login)
 	PostAPIUserLogin(w http.ResponseWriter, r *http.Request)
@@ -66,11 +85,20 @@ type ServerInterface interface {
 	// register user
 	// (POST /api/user/register)
 	PostAPIUserRegister(w http.ResponseWriter, r *http.Request)
+	// Получение информации о выводе средств
+	// (GET /api/user/withdrawals)
+	GetAPIUserWithdrawals(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// create a new withdrawal for user
+// (POST /api/user/balance/withdraw)
+func (_ Unimplemented) PostAPIUserBalanceWithdraw(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // login user
 // (POST /api/user/login)
@@ -96,6 +124,12 @@ func (_ Unimplemented) PostAPIUserRegister(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Получение информации о выводе средств
+// (GET /api/user/withdrawals)
+func (_ Unimplemented) GetAPIUserWithdrawals(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler            ServerInterface
@@ -104,6 +138,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// PostAPIUserBalanceWithdraw operation middleware
+func (siw *ServerInterfaceWrapper) PostAPIUserBalanceWithdraw(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAPIUserBalanceWithdraw(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // PostAPIUserLogin operation middleware
 func (siw *ServerInterfaceWrapper) PostAPIUserLogin(w http.ResponseWriter, r *http.Request) {
@@ -152,6 +200,20 @@ func (siw *ServerInterfaceWrapper) PostAPIUserRegister(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostAPIUserRegister(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAPIUserWithdrawals operation middleware
+func (siw *ServerInterfaceWrapper) GetAPIUserWithdrawals(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAPIUserWithdrawals(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -275,6 +337,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/user/balance/withdraw", wrapper.PostAPIUserBalanceWithdraw)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/login", wrapper.PostAPIUserLogin)
 	})
 	r.Group(func(r chi.Router) {
@@ -286,8 +351,67 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/user/register", wrapper.PostAPIUserRegister)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/user/withdrawals", wrapper.GetAPIUserWithdrawals)
+	})
 
 	return r
+}
+
+type PostAPIUserBalanceWithdrawRequestObject struct {
+	Body *PostAPIUserBalanceWithdrawJSONRequestBody
+}
+
+type PostAPIUserBalanceWithdrawResponseObject interface {
+	VisitPostAPIUserBalanceWithdrawResponse(w http.ResponseWriter) error
+}
+
+type PostAPIUserBalanceWithdraw200Response struct {
+}
+
+func (response PostAPIUserBalanceWithdraw200Response) VisitPostAPIUserBalanceWithdrawResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type PostAPIUserBalanceWithdraw400Response struct {
+}
+
+func (response PostAPIUserBalanceWithdraw400Response) VisitPostAPIUserBalanceWithdrawResponse(w http.ResponseWriter) error {
+	w.WriteHeader(400)
+	return nil
+}
+
+type PostAPIUserBalanceWithdraw401Response struct {
+}
+
+func (response PostAPIUserBalanceWithdraw401Response) VisitPostAPIUserBalanceWithdrawResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type PostAPIUserBalanceWithdraw402Response struct {
+}
+
+func (response PostAPIUserBalanceWithdraw402Response) VisitPostAPIUserBalanceWithdrawResponse(w http.ResponseWriter) error {
+	w.WriteHeader(402)
+	return nil
+}
+
+type PostAPIUserBalanceWithdraw422Response struct {
+}
+
+func (response PostAPIUserBalanceWithdraw422Response) VisitPostAPIUserBalanceWithdrawResponse(w http.ResponseWriter) error {
+	w.WriteHeader(422)
+	return nil
+}
+
+type PostAPIUserBalanceWithdraw500Response struct {
+}
+
+func (response PostAPIUserBalanceWithdraw500Response) VisitPostAPIUserBalanceWithdrawResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
 }
 
 type PostAPIUserLoginRequestObject struct {
@@ -486,8 +610,51 @@ func (response PostAPIUserRegister500Response) VisitPostAPIUserRegisterResponse(
 	return nil
 }
 
+type GetAPIUserWithdrawalsRequestObject struct {
+}
+
+type GetAPIUserWithdrawalsResponseObject interface {
+	VisitGetAPIUserWithdrawalsResponse(w http.ResponseWriter) error
+}
+
+type GetAPIUserWithdrawals200JSONResponse []WithdrawalResponse
+
+func (response GetAPIUserWithdrawals200JSONResponse) VisitGetAPIUserWithdrawalsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAPIUserWithdrawals204Response struct {
+}
+
+func (response GetAPIUserWithdrawals204Response) VisitGetAPIUserWithdrawalsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type GetAPIUserWithdrawals401Response struct {
+}
+
+func (response GetAPIUserWithdrawals401Response) VisitGetAPIUserWithdrawalsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(401)
+	return nil
+}
+
+type GetAPIUserWithdrawals500Response struct {
+}
+
+func (response GetAPIUserWithdrawals500Response) VisitGetAPIUserWithdrawalsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(500)
+	return nil
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// create a new withdrawal for user
+	// (POST /api/user/balance/withdraw)
+	PostAPIUserBalanceWithdraw(ctx context.Context, request PostAPIUserBalanceWithdrawRequestObject) (PostAPIUserBalanceWithdrawResponseObject, error)
 	// login user
 	// (POST /api/user/login)
 	PostAPIUserLogin(ctx context.Context, request PostAPIUserLoginRequestObject) (PostAPIUserLoginResponseObject, error)
@@ -500,6 +667,9 @@ type StrictServerInterface interface {
 	// register user
 	// (POST /api/user/register)
 	PostAPIUserRegister(ctx context.Context, request PostAPIUserRegisterRequestObject) (PostAPIUserRegisterResponseObject, error)
+	// Получение информации о выводе средств
+	// (GET /api/user/withdrawals)
+	GetAPIUserWithdrawals(ctx context.Context, request GetAPIUserWithdrawalsRequestObject) (GetAPIUserWithdrawalsResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -529,6 +699,37 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// PostAPIUserBalanceWithdraw operation middleware
+func (sh *strictHandler) PostAPIUserBalanceWithdraw(w http.ResponseWriter, r *http.Request) {
+	var request PostAPIUserBalanceWithdrawRequestObject
+
+	var body PostAPIUserBalanceWithdrawJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PostAPIUserBalanceWithdraw(ctx, request.(PostAPIUserBalanceWithdrawRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostAPIUserBalanceWithdraw")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PostAPIUserBalanceWithdrawResponseObject); ok {
+		if err := validResponse.VisitPostAPIUserBalanceWithdrawResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // PostAPIUserLogin operation middleware
@@ -642,6 +843,30 @@ func (sh *strictHandler) PostAPIUserRegister(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PostAPIUserRegisterResponseObject); ok {
 		if err := validResponse.VisitPostAPIUserRegisterResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAPIUserWithdrawals operation middleware
+func (sh *strictHandler) GetAPIUserWithdrawals(w http.ResponseWriter, r *http.Request) {
+	var request GetAPIUserWithdrawalsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAPIUserWithdrawals(ctx, request.(GetAPIUserWithdrawalsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAPIUserWithdrawals")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAPIUserWithdrawalsResponseObject); ok {
+		if err := validResponse.VisitGetAPIUserWithdrawalsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

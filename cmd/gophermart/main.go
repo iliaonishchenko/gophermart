@@ -11,6 +11,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/orders"
 	"github.com/iliaonishchenko/gophermart/internal/server"
 	"github.com/iliaonishchenko/gophermart/internal/users"
+	"github.com/iliaonishchenko/gophermart/internal/withdrawals"
 	"github.com/iliaonishchenko/gophermart/pkg/api"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
@@ -48,7 +49,10 @@ func main() {
 	ordersRepo := orders.NewRepository(db)
 	ordersService := orders.NewService(ordersRepo)
 
-	srv := server.NewServer(authService, userService, ordersService)
+	withdrawalsRepo := withdrawals.NewRepository(db)
+	withdrawalsService := withdrawals.NewService(withdrawalsRepo)
+
+	srv := server.NewServer(authService, userService, ordersService, withdrawalsService)
 
 	r := chi.NewRouter()
 	r.Use(logger.WithLogger)
@@ -62,6 +66,8 @@ func main() {
 		r.Use(auth.AuthMiddleware(jwtService))
 		r.Post("/api/user/orders", strictHandler.PostAPIUserOrders)
 		r.Get("/api/user/orders", strictHandler.GetAPIUserOrders)
+		r.Post("/api/user/balance/withdraw", strictHandler.PostAPIUserBalanceWithdraw)
+		r.Get("/api/user/withdrawals", strictHandler.GetAPIUserWithdrawals)
 	})
 
 	handler := r

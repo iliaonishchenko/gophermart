@@ -104,6 +104,50 @@ paths:
           description: пользователь не авторизован
         '500':
           description: внутренняя ошибка сервера
+  /api/user/balance/withdraw:
+    post:
+      summary: create a new withdrawal for user
+      description: |
+        запрос на списание средств
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawalRequest"
+      responses:
+        '200':
+          description: успешная обработка запроса
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: пользователь не авторизован
+        '402':
+          description: на счету недостаточно средств
+        '422':
+          description: неверный номер заказа
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/withdrawals:
+    get:
+      summary: Получение информации о выводе средств
+      description: |
+        Факты выводов в выдаче отсортированы по времени вывода от самых новых к самым старым. Формат даты — RFC3339.
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WithdrawalResponse"
+        '204':
+          description: нет ни одного списания.
+        '401':
+          description: пользователь не авторизован.
+        '500':
+          description: внутренняя ошибка сервера.
 components:
   schemas:
     Order:
@@ -137,3 +181,27 @@ components:
           type: string
         password:
           type: string
+    WithdrawalRequest:
+      type: object
+      required:
+        - order
+        - sum
+      properties:
+        order:
+          type: string
+        sum:
+          type: number
+    WithdrawalResponse:
+      type: object
+      required:
+        - order
+        - sum
+        - processed_at
+      properties:
+        order:
+          type: string
+        sum:
+          type: number
+        processed_at:
+          type: string
+

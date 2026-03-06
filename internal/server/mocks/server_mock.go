@@ -170,3 +170,56 @@ func (mr *MockOrderServiceMockRecorder) Get(ctx, userUUID interface{}) *gomock.C
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockOrderService)(nil).Get), ctx, userUUID)
 }
+
+// MockWithdrawalService is a mock of WithdrawalService interface.
+type MockWithdrawalService struct {
+	ctrl     *gomock.Controller
+	recorder *MockWithdrawalServiceMockRecorder
+}
+
+// MockWithdrawalServiceMockRecorder is the mock recorder for MockWithdrawalService.
+type MockWithdrawalServiceMockRecorder struct {
+	mock *MockWithdrawalService
+}
+
+// NewMockWithdrawalService creates a new mock instance.
+func NewMockWithdrawalService(ctrl *gomock.Controller) *MockWithdrawalService {
+	mock := &MockWithdrawalService{ctrl: ctrl}
+	mock.recorder = &MockWithdrawalServiceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockWithdrawalService) EXPECT() *MockWithdrawalServiceMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockWithdrawalService) Create(ctx context.Context, withdrawalToCreate *models.Withdrawal) (*models.Withdrawal, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, withdrawalToCreate)
+	ret0, _ := ret[0].(*models.Withdrawal)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockWithdrawalServiceMockRecorder) Create(ctx, withdrawalToCreate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockWithdrawalService)(nil).Create), ctx, withdrawalToCreate)
+}
+
+// Get mocks base method.
+func (m *MockWithdrawalService) Get(ctx context.Context) ([]*models.Withdrawal, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx)
+	ret0, _ := ret[0].([]*models.Withdrawal)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockWithdrawalServiceMockRecorder) Get(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockWithdrawalService)(nil).Get), ctx)
+}
