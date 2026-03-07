@@ -7,6 +7,7 @@ import (
 
 type BalanceRepository interface {
 	Get(ctx context.Context) (*models.Balance, error)
+	Update(ctx context.Context, balance *float32, userUUID string) error
 }
 
 type Service struct {
@@ -19,4 +20,8 @@ func NewService(repo BalanceRepository) *Service {
 
 func (s *Service) Get(ctx context.Context) (*models.Balance, error) {
 	return s.repo.Get(ctx)
+}
+
+func (s *Service) Update(ctx context.Context, balance *float32, userUUID string) error {
+	return s.repo.Update(ctx, balance, userUUID)
 }

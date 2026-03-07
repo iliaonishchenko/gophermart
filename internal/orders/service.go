@@ -9,6 +9,7 @@ import (
 type OrderRepository interface {
 	Create(ctx context.Context, order *models.Order) (*models.Order, error)
 	Get(ctx context.Context, uuid *string) ([]*models.Order, error)
+	Update(ctx context.Context, order *models.Order) (*models.Order, error)
 }
 
 type Service struct {
@@ -29,4 +30,8 @@ func (s *Service) Create(ctx context.Context, order *models.Order) (*models.Orde
 
 func (s *Service) Get(ctx context.Context, userUUID *string) ([]*models.Order, error) {
 	return s.orderRepository.Get(ctx, userUUID)
+}
+
+func (s *Service) Update(ctx context.Context, order *models.Order) (*models.Order, error) {
+	return s.orderRepository.Update(ctx, order)
 }

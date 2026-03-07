@@ -20,7 +20,7 @@ func TestGetAPIUserBalance(t *testing.T) {
 		mockBalance := mocks.NewMockBalanceService(ctrl)
 		mockBalance.EXPECT().Get(gomock.Any()).Return(nil, errors.New("db error"))
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance)
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserBalance(context.Background(), api.GetAPIUserBalanceRequestObject{})
 
@@ -35,7 +35,7 @@ func TestGetAPIUserBalance(t *testing.T) {
 		mockBalance := mocks.NewMockBalanceService(ctrl)
 		mockBalance.EXPECT().Get(gomock.Any()).Return(&models.Balance{Current: 500.5, Withdrawn: 42}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance)
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserBalance(context.Background(), api.GetAPIUserBalanceRequestObject{})
 
@@ -53,7 +53,7 @@ func TestGetAPIUserBalance(t *testing.T) {
 		mockBalance := mocks.NewMockBalanceService(ctrl)
 		mockBalance.EXPECT().Get(gomock.Any()).Return(&models.Balance{Current: 0, Withdrawn: 0}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance)
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserBalance(context.Background(), api.GetAPIUserBalanceRequestObject{})
 

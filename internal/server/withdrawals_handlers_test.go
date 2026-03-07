@@ -21,7 +21,7 @@ func TestPostAPIUserBalanceWithdraw(t *testing.T) {
 		mockWithdrawals := mocks.NewMockWithdrawalService(ctrl)
 		mockWithdrawals.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, models.ErrWithdrawalNotEnoughFunds)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.PostAPIUserBalanceWithdraw(context.Background(), api.PostAPIUserBalanceWithdrawRequestObject{
 			Body: &api.WithdrawalRequest{Order: "2377225624", Sum: 751},
@@ -38,7 +38,7 @@ func TestPostAPIUserBalanceWithdraw(t *testing.T) {
 		mockWithdrawals := mocks.NewMockWithdrawalService(ctrl)
 		mockWithdrawals.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, models.ErrWithdrawalNonExistentOrder)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.PostAPIUserBalanceWithdraw(context.Background(), api.PostAPIUserBalanceWithdrawRequestObject{
 			Body: &api.WithdrawalRequest{Order: "9999999999", Sum: 100},
@@ -55,7 +55,7 @@ func TestPostAPIUserBalanceWithdraw(t *testing.T) {
 		mockWithdrawals := mocks.NewMockWithdrawalService(ctrl)
 		mockWithdrawals.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.PostAPIUserBalanceWithdraw(context.Background(), api.PostAPIUserBalanceWithdrawRequestObject{
 			Body: &api.WithdrawalRequest{Order: "2377225624", Sum: 500},
@@ -75,7 +75,7 @@ func TestPostAPIUserBalanceWithdraw(t *testing.T) {
 			Sum:   500,
 		}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.PostAPIUserBalanceWithdraw(context.Background(), api.PostAPIUserBalanceWithdrawRequestObject{
 			Body: &api.WithdrawalRequest{Order: "2377225624", Sum: 500},
@@ -94,7 +94,7 @@ func TestGetAPIUserWithdrawals(t *testing.T) {
 		mockWithdrawals := mocks.NewMockWithdrawalService(ctrl)
 		mockWithdrawals.EXPECT().Get(gomock.Any()).Return(nil, errors.New("db error"))
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserWithdrawals(context.Background(), api.GetAPIUserWithdrawalsRequestObject{})
 
@@ -109,7 +109,7 @@ func TestGetAPIUserWithdrawals(t *testing.T) {
 		mockWithdrawals := mocks.NewMockWithdrawalService(ctrl)
 		mockWithdrawals.EXPECT().Get(gomock.Any()).Return([]*models.Withdrawal{}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserWithdrawals(context.Background(), api.GetAPIUserWithdrawalsRequestObject{})
 
@@ -124,7 +124,7 @@ func TestGetAPIUserWithdrawals(t *testing.T) {
 		mockWithdrawals := mocks.NewMockWithdrawalService(ctrl)
 		mockWithdrawals.EXPECT().Get(gomock.Any()).Return(nil, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserWithdrawals(context.Background(), api.GetAPIUserWithdrawalsRequestObject{})
 
@@ -142,7 +142,7 @@ func TestGetAPIUserWithdrawals(t *testing.T) {
 			{Order: "2377225624", Sum: 500, ProcessedAt: now},
 		}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserWithdrawals(context.Background(), api.GetAPIUserWithdrawalsRequestObject{})
 
@@ -167,7 +167,7 @@ func TestGetAPIUserWithdrawals(t *testing.T) {
 			{Order: "2222222222", Sum: 200, ProcessedAt: earlier},
 		}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mockWithdrawals, mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
 
 		resp, err := srv.GetAPIUserWithdrawals(context.Background(), api.GetAPIUserWithdrawalsRequestObject{})
 

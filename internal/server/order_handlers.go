@@ -23,7 +23,7 @@ func (s *Server) PostAPIUserOrders(ctx context.Context, request api.PostAPIUserO
 		Status:  models.OrderStatusNew,
 		Accrual: nil,
 	}
-	_, err := s.orderService.Create(ctx, newOrder)
+	createdOrder, err := s.orderService.Create(ctx, newOrder)
 	if errors.Is(err, models.ErrInvalidOrderFormat) {
 		logger.Log.Error("invalid order", logger.Err(err))
 		return api.PostAPIUserOrders422Response{}, nil
@@ -40,6 +40,7 @@ func (s *Server) PostAPIUserOrders(ctx context.Context, request api.PostAPIUserO
 		logger.Log.Error("could not create order", logger.Err(err))
 		return api.PostAPIUserOrders500Response{}, nil
 	}
+	s.accrualService.Add(createdOrder.Number, string(models.StatusRegistered), createdOrder.UserID)
 	return api.PostAPIUserOrders202Response{}, nil
 }
 

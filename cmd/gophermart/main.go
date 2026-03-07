@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"github.com/go-chi/chi/v5"
 	"github.com/iliaonishchenko/gophermart"
+	"github.com/iliaonishchenko/gophermart/internal/accrual"
 	"github.com/iliaonishchenko/gophermart/internal/auth"
 	"github.com/iliaonishchenko/gophermart/internal/balance"
 	"github.com/iliaonishchenko/gophermart/internal/config"
@@ -17,11 +18,13 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
 
-	_ = context.Background()
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -56,7 +59,10 @@ func main() {
 	balanceRepo := balance.NewRepository(db)
 	balanceService := balance.NewService(balanceRepo)
 
-	srv := server.NewServer(authService, userService, ordersService, withdrawalsService, balanceService)
+	client := accrual.NewClient(cfg.AccrualAddr)
+	accrualPoller := accrual.NewAccrualPoller(client, ordersService, balanceService)
+
+	srv := server.NewServer(authService, userService, ordersService, withdrawalsService, balanceService, accrualPoller)
 
 	r := chi.NewRouter()
 	r.Use(logger.WithLogger)
@@ -75,10 +81,18 @@ func main() {
 		r.Get("/api/user/balance", strictHandler.GetAPIUserBalance)
 	})
 
-	handler := r
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	err = http.ListenAndServe(cfg.ServerAddr, handler)
-	if err != nil {
-		return
-	}
+	go accrualPoller.Run(ctx)
+
+	httpServer := &http.Server{Addr: cfg.ServerAddr, Handler: r}
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	<-ctx.Done()
+	httpServer.Shutdown(context.Background())
 }

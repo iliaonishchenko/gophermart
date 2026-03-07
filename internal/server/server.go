@@ -29,20 +29,27 @@ type BalanceService interface {
 	Get(ctx context.Context) (*models.Balance, error)
 }
 
+type AccrualService interface {
+	Run(ctx context.Context)
+	Add(number string, status string, userUUID string)
+}
+
 type Server struct {
 	authService       Auth
 	userService       UserService
 	orderService      OrderService
 	withdrawalService WithdrawalService
 	balanceService    BalanceService
+	accrualService    AccrualService
 }
 
-func NewServer(auth Auth, userService UserService, orderService OrderService, withdrawalService WithdrawalService, balanceService BalanceService) *Server {
+func NewServer(auth Auth, userService UserService, orderService OrderService, withdrawalService WithdrawalService, balanceService BalanceService, accrualService AccrualService) *Server {
 	return &Server{
 		authService:       auth,
 		userService:       userService,
 		orderService:      orderService,
 		withdrawalService: withdrawalService,
 		balanceService:    balanceService,
+		accrualService:    accrualService,
 	}
 }

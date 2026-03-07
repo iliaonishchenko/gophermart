@@ -49,3 +49,17 @@ func (mr *MockBalanceRepositoryMockRecorder) Get(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockBalanceRepository)(nil).Get), ctx)
 }
+
+// Update mocks base method.
+func (m *MockBalanceRepository) Update(ctx context.Context, balance *float32, userUUID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, balance, userUUID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockBalanceRepositoryMockRecorder) Update(ctx, balance, userUUID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockBalanceRepository)(nil).Update), ctx, balance, userUUID)
+}

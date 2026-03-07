@@ -15,4 +15,9 @@ var (
 	// Withdrawals errors
 	ErrWithdrawalNonExistentOrder = errors.New("withdrawal relates to non-existing order")
 	ErrWithdrawalNotEnoughFunds   = errors.New("withdrawal not enough funds")
+
+	// Accrual errors
+	ErrAccrualClientOrderNotRegistered = errors.New("accrual order not registered")
+	ErrAccrualClientTooManyRequests    = errors.New("accrual order too many requests")
+	ErrAccrualClientInternalError      = errors.New("accrual order internal error")
 )

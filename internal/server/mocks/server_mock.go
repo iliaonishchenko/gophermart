@@ -261,3 +261,50 @@ func (mr *MockBalanceServiceMockRecorder) Get(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockBalanceService)(nil).Get), ctx)
 }
+
+// MockAccrualService is a mock of AccrualService interface.
+type MockAccrualService struct {
+	ctrl     *gomock.Controller
+	recorder *MockAccrualServiceMockRecorder
+}
+
+// MockAccrualServiceMockRecorder is the mock recorder for MockAccrualService.
+type MockAccrualServiceMockRecorder struct {
+	mock *MockAccrualService
+}
+
+// NewMockAccrualService creates a new mock instance.
+func NewMockAccrualService(ctrl *gomock.Controller) *MockAccrualService {
+	mock := &MockAccrualService{ctrl: ctrl}
+	mock.recorder = &MockAccrualServiceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockAccrualService) EXPECT() *MockAccrualServiceMockRecorder {
+	return m.recorder
+}
+
+// Add mocks base method.
+func (m *MockAccrualService) Add(number, status, userUUID string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Add", number, status, userUUID)
+}
+
+// Add indicates an expected call of Add.
+func (mr *MockAccrualServiceMockRecorder) Add(number, status, userUUID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockAccrualService)(nil).Add), number, status, userUUID)
+}
+
+// Run mocks base method.
+func (m *MockAccrualService) Run(ctx context.Context) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Run", ctx)
+}
+
+// Run indicates an expected call of Run.
+func (mr *MockAccrualServiceMockRecorder) Run(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockAccrualService)(nil).Run), ctx)
+}

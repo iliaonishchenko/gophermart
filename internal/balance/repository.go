@@ -58,3 +58,14 @@ func (r *Repository) Get(ctx context.Context) (*models.Balance, error) {
 
 	return &balance, nil
 }
+
+func (r *Repository) Update(ctx context.Context, balance *float32, userUUID string) error {
+	query := `UPDATE balances SET balance = balance + $1 WHERE user_id = $2`
+
+	_, err := r.db.ExecContext(ctx, query, balance, userUUID)
+	if err != nil {
+		logger.Log.Error("failed to update balance", logger.Err(err))
+		return err
+	}
+	return nil
+}

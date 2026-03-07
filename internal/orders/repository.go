@@ -71,3 +71,13 @@ func (r *Repository) Get(ctx context.Context, userUUID *string) ([]*models.Order
 	}
 	return orders, nil
 }
+
+func (r *Repository) Update(ctx context.Context, order *models.Order) (*models.Order, error) {
+	query := `UPDATE orders SET status = $1, accrual = $2 WHERE number = $3 RETURNING number, user_id, status, accrual, uploaded_at`
+
+	err := r.db.QueryRowContext(ctx, query, order.Status, order.Accrual, order.Number).Scan(&order.Number, &order.UserID, &order.Status, &order.Accrual, &order.UploadedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update order: %w", err)
+	}
+	return order, nil
+}
