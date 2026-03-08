@@ -62,6 +62,14 @@ func (r *Repository) Create(ctx context.Context, withdrawalToCreate *models.With
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert withdrawal: %w", err)
 	}
+
+	updateBalanceQuery := "UPDATE balances SET balance = balance - $1 WHERE user_id = $2"
+	_, err = tx.ExecContext(ctx, updateBalanceQuery, withdrawalToCreate.Sum, userUUID)
+	if err != nil {
+		logger.Log.Error("failed to deduct balance after withdrawal", logger.Err(err))
+		return nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		logger.Log.Error("transaction commit failed", logger.Err(err))
