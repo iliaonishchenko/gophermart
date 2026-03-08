@@ -38,13 +38,12 @@ func (r *Repository) Get(ctx context.Context) (*models.Balance, error) {
 	err = tx.QueryRowContext(ctx, balanceQuery, userUUID).Scan(&balance.Current)
 	if errors.Is(err, sql.ErrNoRows) {
 		balance.Current = 0
-	}
-	if err != nil {
+	} else if err != nil {
 		logger.Log.Error("failed to scan balance", logger.Err(err))
 		return nil, err
 	}
 
-	withdrawnQuery := "SELECT COALESCE(SUM(sum)) FROM withdrawals WHERE user_id = $1"
+	withdrawnQuery := "SELECT COALESCE(SUM(sum), 0) FROM withdrawals WHERE user_id = $1"
 	err = tx.QueryRowContext(ctx, withdrawnQuery, userUUID).Scan(&balance.Withdrawn)
 	if err != nil {
 		logger.Log.Error("failed to get all users withdrawals for balance", logger.Err(err))
@@ -60,7 +59,8 @@ func (r *Repository) Get(ctx context.Context) (*models.Balance, error) {
 }
 
 func (r *Repository) Update(ctx context.Context, balance *float32, userUUID string) error {
-	query := `UPDATE balances SET balance = balance + $1 WHERE user_id = $2`
+	query := `INSERT INTO balances (user_id, balance) VALUES ($2, $1)
+		ON CONFLICT (user_id) DO UPDATE SET balance = balances.balance + $1`
 
 	_, err := r.db.ExecContext(ctx, query, balance, userUUID)
 	if err != nil {
