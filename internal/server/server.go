@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"github.com/iliaonishchenko/gophermart/internal/models"
+	"go.uber.org/zap"
 )
 
 type Auth interface {
@@ -41,9 +42,10 @@ type Server struct {
 	withdrawalService WithdrawalService
 	balanceService    BalanceService
 	accrualService    AccrualService
+	log               *zap.Logger
 }
 
-func NewServer(auth Auth, userService UserService, orderService OrderService, withdrawalService WithdrawalService, balanceService BalanceService, accrualService AccrualService) *Server {
+func NewServer(auth Auth, userService UserService, orderService OrderService, withdrawalService WithdrawalService, balanceService BalanceService, accrualService AccrualService, log *zap.Logger) *Server {
 	return &Server{
 		authService:       auth,
 		userService:       userService,
@@ -51,5 +53,6 @@ func NewServer(auth Auth, userService UserService, orderService OrderService, wi
 		withdrawalService: withdrawalService,
 		balanceService:    balanceService,
 		accrualService:    accrualService,
+		log:               log,
 	}
 }

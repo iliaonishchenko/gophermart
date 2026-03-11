@@ -11,8 +11,8 @@ import (
 )
 
 func (s *Server) PostAPIUserOrders(ctx context.Context, request api.PostAPIUserOrdersRequestObject) (api.PostAPIUserOrdersResponseObject, error) {
-	userUUID, ok := auth.GetUserUUID(ctx)
-	if !ok {
+	userUUID, err := auth.GetUserUUID(ctx)
+	if err != nil {
 		return api.PostAPIUserOrders400Response{}, nil
 	}
 	orderNumber := strings.TrimSpace(*request.Body)
@@ -25,19 +25,19 @@ func (s *Server) PostAPIUserOrders(ctx context.Context, request api.PostAPIUserO
 	}
 	createdOrder, err := s.orderService.Create(ctx, newOrder)
 	if errors.Is(err, models.ErrInvalidOrderFormat) {
-		logger.Log.Error("invalid order", logger.Err(err))
+		s.log.Error("invalid order", logger.Err(err))
 		return api.PostAPIUserOrders422Response{}, nil
 	}
 	if errors.Is(err, models.ErrOrderAlreadyExists) {
-		logger.Log.Info("order already exists", logger.Err(err))
+		s.log.Info("order already exists", logger.Err(err))
 		return api.PostAPIUserOrders200Response{}, nil
 	}
 	if errors.Is(err, models.ErrOrderExistsDifferentUser) {
-		logger.Log.Error("order already uploaded by another user", logger.Err(err))
+		s.log.Error("order already uploaded by another user", logger.Err(err))
 		return api.PostAPIUserOrders409Response{}, nil
 	}
 	if err != nil {
-		logger.Log.Error("could not create order", logger.Err(err))
+		s.log.Error("could not create order", logger.Err(err))
 		return api.PostAPIUserOrders500Response{}, nil
 	}
 	s.accrualService.Add(createdOrder.Number, string(models.StatusRegistered), createdOrder.UserID)
@@ -45,10 +45,13 @@ func (s *Server) PostAPIUserOrders(ctx context.Context, request api.PostAPIUserO
 }
 
 func (s *Server) GetAPIUserOrders(ctx context.Context, request api.GetAPIUserOrdersRequestObject) (api.GetAPIUserOrdersResponseObject, error) {
-	userUUID := ctx.Value(auth.UserUUIDKey).(string)
+	userUUID, err := auth.GetUserUUID(ctx)
+	if err != nil {
+		return api.GetAPIUserOrders500Response{}, nil
+	}
 	orders, err := s.orderService.Get(ctx, &userUUID)
 	if err != nil {
-		logger.Log.Error("could not get order", logger.Err(err))
+		s.log.Error("could not get order", logger.Err(err))
 		return api.GetAPIUserOrders500Response{}, nil
 	}
 	if len(orders) == 0 {

@@ -5,17 +5,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/iliaonishchenko/gophermart/internal/logger"
 	"github.com/iliaonishchenko/gophermart/internal/models"
 	"github.com/jackc/pgx/v5/pgconn"
+	"go.uber.org/zap"
 )
 
 type Repository struct {
-	db *sql.DB
+	db  *sql.DB
+	log *zap.Logger
 }
 
-func NewRepository(db *sql.DB) *Repository {
-	return &Repository{db: db}
+func NewRepository(db *sql.DB, log *zap.Logger) *Repository {
+	return &Repository{db: db, log: log}
 }
 
 func (r *Repository) Ping() error {
@@ -62,7 +63,7 @@ func (r *Repository) Get(ctx context.Context, userUUID *string) ([]*models.Order
 
 		err := rows.Scan(&order.Number, &order.UserID, &order.Status, &order.Accrual, &order.UploadedAt)
 		if err != nil {
-			logger.Log.Error("failed to scan order", logger.Err(err))
+			return nil, fmt.Errorf("failed to scan order: %w", err)
 		}
 		orders = append(orders, &order)
 	}

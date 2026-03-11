@@ -2,11 +2,16 @@ package accrual
 
 import (
 	"context"
-	"github.com/iliaonishchenko/gophermart/internal/logger"
-	"github.com/iliaonishchenko/gophermart/internal/models"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/iliaonishchenko/gophermart/internal/models"
+	"go.uber.org/zap"
 )
+
+var errOrderNotReady = errors.New("order not ready")
 
 type AccrualClient interface {
 	Evaluate(number string) (*models.AccrualOrder, error)
@@ -34,15 +39,17 @@ type AccrualPoller struct {
 	ticker   *time.Ticker
 	oService OrderService
 	bService BalanceService
+	log      *zap.Logger
 }
 
-func NewAccrualPoller(client AccrualClient, oService OrderService, bService BalanceService) *AccrualPoller {
+func NewAccrualPoller(client AccrualClient, oService OrderService, bService BalanceService, log *zap.Logger) *AccrualPoller {
 	return &AccrualPoller{
 		client:   client,
 		orders:   make([]*order, 0),
 		ticker:   time.NewTicker(1 * time.Second),
 		oService: oService,
 		bService: bService,
+		log:      log,
 	}
 }
 
@@ -56,10 +63,12 @@ func (ap *AccrualPoller) Run(ctx context.Context) {
 			ap.mu.RUnlock()
 
 			var (
-				remaining []*order
-				wg        sync.WaitGroup
-				mu        sync.Mutex
-				sem       = make(chan struct{}, maxWorkers)
+				remaining    []*order
+				wg           sync.WaitGroup
+				mu           sync.Mutex
+				sem          = make(chan struct{}, maxWorkers)
+				retryAfter   time.Duration
+				retryAfterMu sync.Mutex
 			)
 
 			for _, o := range snapshot {
@@ -68,7 +77,20 @@ func (ap *AccrualPoller) Run(ctx context.Context) {
 				go func(o *order) {
 					defer wg.Done()
 					defer func() { <-sem }()
-					if !ap.handleOrder(ctx, o) {
+
+					err := ap.handleOrder(ctx, o)
+					if err != nil {
+						var rateLimitErr *RateLimitError
+						if errors.As(err, &rateLimitErr) {
+							ap.log.Warn("rate limited, pausing all workers", zap.Duration("retry_after", rateLimitErr.RetryAfter))
+							retryAfterMu.Lock()
+							if rateLimitErr.RetryAfter > retryAfter {
+								retryAfter = rateLimitErr.RetryAfter
+							}
+							retryAfterMu.Unlock()
+						} else if !errors.Is(err, errOrderNotReady) {
+							ap.log.Error("error handling order: "+o.number, zap.Error(err))
+						}
 						mu.Lock()
 						remaining = append(remaining, o)
 						mu.Unlock()
@@ -76,9 +98,18 @@ func (ap *AccrualPoller) Run(ctx context.Context) {
 				}(o)
 			}
 			wg.Wait()
+
 			ap.mu.Lock()
 			ap.orders = remaining
 			ap.mu.Unlock()
+
+			if retryAfter > 0 {
+				select {
+				case <-time.After(retryAfter):
+				case <-ctx.Done():
+					return
+				}
+			}
 		case <-ctx.Done():
 			return
 		}
@@ -91,15 +122,14 @@ func (ap *AccrualPoller) Add(number string, status string, userUUID string) {
 	ap.orders = append(ap.orders, &order{number: number, status: status, userUUID: userUUID})
 }
 
-func (ap *AccrualPoller) handleOrder(ctx context.Context, o *order) bool {
+func (ap *AccrualPoller) handleOrder(ctx context.Context, o *order) error {
 	accrualOrder, err := ap.client.Evaluate(o.number)
 	if err != nil {
-		logger.Log.Error("error getting order info: "+o.number, logger.Err(err))
-		return false
+		return fmt.Errorf("getting order info: %w", err)
 	}
 	status := string(accrualOrder.Status)
 	if status == o.status {
-		return false
+		return errOrderNotReady
 	}
 
 	if accrualOrder.Status == models.StatusProcessing {
@@ -109,10 +139,10 @@ func (ap *AccrualPoller) handleOrder(ctx context.Context, o *order) bool {
 		}
 		_, err := ap.oService.Update(ctx, updateOrder)
 		if err != nil {
-			logger.Log.Error("error updating order: "+o.number, logger.Err(err))
+			return fmt.Errorf("updating order status to processing: %w", err)
 		}
 		o.status = status
-		return false
+		return errOrderNotReady
 	}
 
 	if accrualOrder.Status == models.StatusInvalid || accrualOrder.Status == models.StatusProcessed {
@@ -123,18 +153,16 @@ func (ap *AccrualPoller) handleOrder(ctx context.Context, o *order) bool {
 		}
 		_, err := ap.oService.Update(ctx, updateOrder)
 		if err != nil {
-			logger.Log.Error("error updating order: "+o.number, logger.Err(err))
-			return false
+			return fmt.Errorf("updating order: %w", err)
 		}
 		if accrualOrder.Status == models.StatusProcessed && accrualOrder.Accrual != nil {
 			err = ap.bService.Update(ctx, accrualOrder.Accrual, o.userUUID)
 			if err != nil {
-				logger.Log.Error("error updating balance: "+o.number, logger.Err(err))
-				return false
+				return fmt.Errorf("updating balance: %w", err)
 			}
 		}
-		return true
+		return nil
 	}
 
-	return false
+	return errOrderNotReady
 }

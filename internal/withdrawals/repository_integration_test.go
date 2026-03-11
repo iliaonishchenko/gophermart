@@ -11,6 +11,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestRepositoryIntegration(t *testing.T) {
@@ -25,7 +26,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.SetBalance(t, *user.ID, 500)
 
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			withdrawal := &models.Withdrawal{Order: "12345678903", Sum: 100}
 			created, err := repo.Create(ctx, withdrawal)
@@ -45,7 +46,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.SetBalance(t, *user.ID, 50)
 
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			withdrawal := &models.Withdrawal{Order: "12345678903", Sum: 100}
 			_, err := repo.Create(ctx, withdrawal)
@@ -61,7 +62,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.CreateTestOrder(t, "12345678903", *user.ID, models.OrderStatusProcessed, nil)
 
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			withdrawal := &models.Withdrawal{Order: "12345678903", Sum: 10}
 			_, err := repo.Create(ctx, withdrawal)
@@ -75,7 +76,7 @@ func TestRepositoryIntegration(t *testing.T) {
 
 			user := tdb.CreateTestUser(t, "dave", "hash")
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			_, err := repo.Create(ctx, nil)
 
@@ -83,7 +84,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		})
 
 		t.Run("no_user_in_context", func(t *testing.T) {
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			withdrawal := &models.Withdrawal{Order: "12345678903", Sum: 10}
 			_, err := repo.Create(context.Background(), withdrawal)
@@ -102,7 +103,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.SetBalance(t, *user.ID, 1000)
 
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			w1 := &models.Withdrawal{Order: "100", Sum: 50}
 			_, err := repo.Create(ctx, w1)
@@ -127,7 +128,7 @@ func TestRepositoryIntegration(t *testing.T) {
 
 			user := tdb.CreateTestUser(t, "alice", "hash")
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			withdrawals, err := repo.Get(ctx)
 
@@ -136,7 +137,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		})
 
 		t.Run("no_user_in_context", func(t *testing.T) {
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			_, err := repo.Get(context.Background())
 

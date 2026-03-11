@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/iliaonishchenko/gophermart"
 	"github.com/iliaonishchenko/gophermart/internal/accrual"
@@ -24,48 +25,52 @@ import (
 )
 
 func main() {
-
-	cfg, err := config.LoadConfig()
-	if err != nil {
+	if err := run(); err != nil {
 		log.Fatal(err)
 	}
+}
 
-	parseFlags(cfg)
+func run() error {
+	cfg, err := config.LoadConfiguration()
+	if err != nil {
+		return err
+	}
 
-	if err := logger.Initialize(cfg.LogLevel); err != nil {
-		log.Fatal(err)
+	zlog, err := logger.Initialize(cfg.LogLevel)
+	if err != nil {
+		return err
 	}
 
 	db, err := sql.Open("pgx", cfg.DatabaseURI)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	err = gophermart.RunMigrations(db)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	usersRepo := users.NewRepository(db)
+	usersRepo := users.NewRepository(db, zlog)
 	jwtService := auth.NewJwtService(cfg)
 	authService := auth.NewAuthService(usersRepo, jwtService)
 	userService := users.NewService(usersRepo)
 
-	ordersRepo := orders.NewRepository(db)
-	ordersService := orders.NewService(ordersRepo)
+	ordersRepo := orders.NewRepository(db, zlog)
+	ordersService := orders.NewService(ordersRepo, zlog)
 
-	withdrawalsRepo := withdrawals.NewRepository(db)
+	withdrawalsRepo := withdrawals.NewRepository(db, zlog)
 	withdrawalsService := withdrawals.NewService(withdrawalsRepo)
 
-	balanceRepo := balance.NewRepository(db)
+	balanceRepo := balance.NewRepository(db, zlog)
 	balanceService := balance.NewService(balanceRepo)
 
-	client := accrual.NewClient(cfg.AccrualAddr)
-	accrualPoller := accrual.NewAccrualPoller(client, ordersService, balanceService)
+	client := accrual.NewClient(cfg.AccrualAddr, zlog)
+	accrualPoller := accrual.NewAccrualPoller(client, ordersService, balanceService, zlog)
 
-	srv := server.NewServer(authService, userService, ordersService, withdrawalsService, balanceService, accrualPoller)
+	srv := server.NewServer(authService, userService, ordersService, withdrawalsService, balanceService, accrualPoller, zlog)
 
 	r := chi.NewRouter()
-	r.Use(logger.WithLogger)
+	r.Use(logger.WithLogger(zlog))
 
 	strictHandler := api.NewStrictHandler(srv, nil)
 
@@ -86,13 +91,19 @@ func main() {
 
 	go accrualPoller.Run(ctx)
 
+	errCh := make(chan error, 1)
 	httpServer := &http.Server{Addr: cfg.ServerAddr, Handler: r}
 	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
 		}
 	}()
 
-	<-ctx.Done()
-	httpServer.Shutdown(context.Background())
+	select {
+	case <-ctx.Done():
+	case err := <-errCh:
+		return err
+	}
+
+	return httpServer.Shutdown(context.Background())
 }

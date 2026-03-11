@@ -10,6 +10,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func float32Ptr(f float32) *float32 {
@@ -25,7 +26,7 @@ func TestRepositoryIntegration(t *testing.T) {
 
 			user := tdb.CreateTestUser(t, "alice", "hash")
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			balance, err := repo.Get(ctx)
 
@@ -41,7 +42,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			user := tdb.CreateTestUser(t, "bob", "hash")
 			tdb.SetBalance(t, *user.ID, 100)
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			balance, err := repo.Get(ctx)
 
@@ -66,7 +67,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			require.NoError(t, err)
 
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			balance, err := repo.Get(ctx)
 
@@ -77,7 +78,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		})
 
 		t.Run("no_user_in_context", func(t *testing.T) {
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			_, err := repo.Get(context.Background())
 
@@ -91,7 +92,7 @@ func TestRepositoryIntegration(t *testing.T) {
 
 			user := tdb.CreateTestUser(t, "alice", "hash")
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			amount := float32(100)
 			err := repo.Update(ctx, &amount, *user.ID)
@@ -109,7 +110,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			user := tdb.CreateTestUser(t, "bob", "hash")
 			tdb.SetBalance(t, *user.ID, 50)
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			amount := float32(75)
 			err := repo.Update(ctx, &amount, *user.ID)
@@ -126,7 +127,7 @@ func TestRepositoryIntegration(t *testing.T) {
 
 			user := tdb.CreateTestUser(t, "charlie", "hash")
 			ctx := testutil.ContextWithUserUUID(*user.ID)
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			amounts := []float32{10, 20, 30}
 			for _, a := range amounts {

@@ -5,18 +5,19 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/iliaonishchenko/gophermart/internal/logger"
 	"github.com/iliaonishchenko/gophermart/internal/models"
 	"github.com/jackc/pgx/v5/pgconn"
+	"go.uber.org/zap"
 	"time"
 )
 
 type Repository struct {
-	db *sql.DB
+	db  *sql.DB
+	log *zap.Logger
 }
 
-func NewRepository(db *sql.DB) *Repository {
-	return &Repository{db: db}
+func NewRepository(db *sql.DB, log *zap.Logger) *Repository {
+	return &Repository{db: db, log: log}
 }
 
 func (r *Repository) Ping() error {
@@ -35,7 +36,6 @@ func (r *Repository) Create(ctx context.Context, user *models.User) (*models.Use
 		return nil, fmt.Errorf("%w: %s", models.ErrUserAlreadyExists, user.Login)
 	}
 	if err != nil {
-		logger.Log.Error("failed to create user in database", logger.Err(err))
 		return nil, err
 	}
 
@@ -57,7 +57,6 @@ func (r *Repository) GetUserByLogin(ctx context.Context, login string) (*models.
 	row := r.db.QueryRowContext(ctx, query, login)
 	err := row.Scan(&id, &uLogin, &passwordHash, &createdAt)
 	if err != nil {
-		logger.Log.Error("failed to get user by login", logger.Err(err))
 		return nil, err
 	}
 	user := &models.User{ID: &id, Login: uLogin, PasswordHash: passwordHash, CreatedAt: createdAt}

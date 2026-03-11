@@ -10,6 +10,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestRepositoryIntegration(t *testing.T) {
@@ -19,7 +20,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			tdb.TruncateAll(t)
 
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 			user := &models.User{Login: "alice", PasswordHash: "hash123"}
 
 			created, err := repo.Create(context.Background(), user)
@@ -35,7 +36,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		t.Run("duplicate_login", func(t *testing.T) {
 			tdb.TruncateAll(t)
 
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 			user1 := &models.User{Login: "bob", PasswordHash: "hash1"}
 			_, err := repo.Create(context.Background(), user1)
 			require.NoError(t, err)
@@ -48,7 +49,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		})
 
 		t.Run("nil_user", func(t *testing.T) {
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			_, err := repo.Create(context.Background(), nil)
 
@@ -60,7 +61,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			tdb.TruncateAll(t)
 
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 			user := &models.User{Login: "charlie", PasswordHash: "hash456"}
 			created, err := repo.Create(context.Background(), user)
 			require.NoError(t, err)
@@ -78,7 +79,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		t.Run("not_found", func(t *testing.T) {
 			tdb.TruncateAll(t)
 
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			_, err := repo.GetUserByLogin(context.Background(), "nonexistent")
 
@@ -86,7 +87,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		})
 
 		t.Run("empty_login", func(t *testing.T) {
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			_, err := repo.GetUserByLogin(context.Background(), "")
 

@@ -10,6 +10,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/server/mocks"
 	"github.com/iliaonishchenko/gophermart/pkg/api"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestGetAPIUserBalance(t *testing.T) {
@@ -20,7 +21,7 @@ func TestGetAPIUserBalance(t *testing.T) {
 		mockBalance := mocks.NewMockBalanceService(ctrl)
 		mockBalance.EXPECT().Get(gomock.Any()).Return(nil, errors.New("db error"))
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		resp, err := srv.GetAPIUserBalance(context.Background(), api.GetAPIUserBalanceRequestObject{})
 
@@ -35,7 +36,7 @@ func TestGetAPIUserBalance(t *testing.T) {
 		mockBalance := mocks.NewMockBalanceService(ctrl)
 		mockBalance.EXPECT().Get(gomock.Any()).Return(&models.Balance{Current: 500.5, Withdrawn: 42}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		resp, err := srv.GetAPIUserBalance(context.Background(), api.GetAPIUserBalanceRequestObject{})
 
@@ -53,7 +54,7 @@ func TestGetAPIUserBalance(t *testing.T) {
 		mockBalance := mocks.NewMockBalanceService(ctrl)
 		mockBalance.EXPECT().Get(gomock.Any()).Return(&models.Balance{Current: 0, Withdrawn: 0}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mockBalance, mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		resp, err := srv.GetAPIUserBalance(context.Background(), api.GetAPIUserBalanceRequestObject{})
 

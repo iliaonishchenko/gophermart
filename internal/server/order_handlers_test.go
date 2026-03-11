@@ -9,6 +9,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/server/mocks"
 	"github.com/iliaonishchenko/gophermart/pkg/api"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"testing"
 	"time"
 )
@@ -26,7 +27,7 @@ func TestPostAPIUserOrders(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mocks.NewMockOrderService(ctrl), mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		body := "12345678903"
 		resp, err := srv.PostAPIUserOrders(context.Background(), api.PostAPIUserOrdersRequestObject{
@@ -44,7 +45,7 @@ func TestPostAPIUserOrders(t *testing.T) {
 		mockOrders := mocks.NewMockOrderService(ctrl)
 		mockOrders.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, models.ErrInvalidOrderFormat)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		body := "12345678901"
 		resp, err := srv.PostAPIUserOrders(ctxWithUUID("user-uuid"), api.PostAPIUserOrdersRequestObject{
@@ -62,7 +63,7 @@ func TestPostAPIUserOrders(t *testing.T) {
 		mockOrders := mocks.NewMockOrderService(ctrl)
 		mockOrders.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, models.ErrOrderAlreadyExists)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		body := "12345678903"
 		resp, err := srv.PostAPIUserOrders(ctxWithUUID("user-uuid"), api.PostAPIUserOrdersRequestObject{
@@ -80,7 +81,7 @@ func TestPostAPIUserOrders(t *testing.T) {
 		mockOrders := mocks.NewMockOrderService(ctrl)
 		mockOrders.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, models.ErrOrderExistsDifferentUser)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		body := "12345678903"
 		resp, err := srv.PostAPIUserOrders(ctxWithUUID("user-uuid"), api.PostAPIUserOrdersRequestObject{
@@ -98,7 +99,7 @@ func TestPostAPIUserOrders(t *testing.T) {
 		mockOrders := mocks.NewMockOrderService(ctrl)
 		mockOrders.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		body := "12345678903"
 		resp, err := srv.PostAPIUserOrders(ctxWithUUID("user-uuid"), api.PostAPIUserOrdersRequestObject{
@@ -119,7 +120,7 @@ func TestPostAPIUserOrders(t *testing.T) {
 		mockAccrual := mocks.NewMockAccrualService(ctrl)
 		mockAccrual.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any())
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mockAccrual)
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mockAccrual, zap.NewNop())
 
 		body := "12345678903"
 		resp, err := srv.PostAPIUserOrders(ctxWithUUID("user-uuid"), api.PostAPIUserOrdersRequestObject{
@@ -145,7 +146,7 @@ func TestPostAPIUserOrders(t *testing.T) {
 		mockAccrual := mocks.NewMockAccrualService(ctrl)
 		mockAccrual.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any())
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mockAccrual)
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mockAccrual, zap.NewNop())
 
 		body := "  12345678903\n"
 		resp, err := srv.PostAPIUserOrders(ctxWithUUID("user-uuid"), api.PostAPIUserOrdersRequestObject{
@@ -165,7 +166,7 @@ func TestGetAPIUserOrders(t *testing.T) {
 		mockOrders := mocks.NewMockOrderService(ctrl)
 		mockOrders.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, errors.New("db error"))
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		resp, err := srv.GetAPIUserOrders(ctxWithUUID("user-uuid"), api.GetAPIUserOrdersRequestObject{})
 
@@ -180,7 +181,7 @@ func TestGetAPIUserOrders(t *testing.T) {
 		mockOrders := mocks.NewMockOrderService(ctrl)
 		mockOrders.EXPECT().Get(gomock.Any(), gomock.Any()).Return([]*models.Order{}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		resp, err := srv.GetAPIUserOrders(ctxWithUUID("user-uuid"), api.GetAPIUserOrdersRequestObject{})
 
@@ -200,7 +201,7 @@ func TestGetAPIUserOrders(t *testing.T) {
 			{Number: "9278923470", UserID: "user-uuid", Status: models.OrderStatusNew, Accrual: nil, UploadedAt: now},
 		}, nil)
 
-		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl))
+		srv := NewServer(mocks.NewMockAuth(ctrl), mocks.NewMockUserService(ctrl), mockOrders, mocks.NewMockWithdrawalService(ctrl), mocks.NewMockBalanceService(ctrl), mocks.NewMockAccrualService(ctrl), zap.NewNop())
 
 		resp, err := srv.GetAPIUserOrders(ctxWithUUID("user-uuid"), api.GetAPIUserOrdersRequestObject{})
 

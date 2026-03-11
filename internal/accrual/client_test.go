@@ -3,11 +3,14 @@ package accrual
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/iliaonishchenko/gophermart/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func float32Ptr(f float32) *float32 {
@@ -16,12 +19,11 @@ func float32Ptr(f float32) *float32 {
 
 func TestClientEvaluate(t *testing.T) {
 	tests := []struct {
-		name        string
-		status      int
-		body        string
-		wantOrder   *models.AccrualOrder
-		wantErr     error
-		wantAnyErr  bool
+		name      string
+		status    int
+		body      string
+		wantOrder *models.AccrualOrder
+		wantErr   error
 	}{
 		{
 			name:   "200 with valid JSON returns decoded order",
@@ -48,24 +50,6 @@ func TestClientEvaluate(t *testing.T) {
 			body:    "",
 			wantErr: models.ErrAccrualClientOrderNotRegistered,
 		},
-		{
-			name:    "429 returns ErrAccrualClientTooManyRequests",
-			status:  http.StatusTooManyRequests,
-			body:    "",
-			wantErr: models.ErrAccrualClientTooManyRequests,
-		},
-		{
-			name:    "500 returns ErrAccrualClientInternalError",
-			status:  http.StatusInternalServerError,
-			body:    "",
-			wantErr: models.ErrAccrualClientInternalError,
-		},
-		{
-			name:       "200 with malformed JSON returns decode error",
-			status:     http.StatusOK,
-			body:       `{invalid json`,
-			wantAnyErr: true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -79,16 +63,13 @@ func TestClientEvaluate(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client := NewClient(srv.URL)
+			client := NewClient(srv.URL, zap.NewNop())
+			client.httpClient.RetryWaitMin = 10 * time.Millisecond
+			client.httpClient.RetryMax = 0
 			got, err := client.Evaluate("12345")
 
 			if tt.wantErr != nil {
 				assert.ErrorIs(t, err, tt.wantErr)
-				assert.Nil(t, got)
-				return
-			}
-			if tt.wantAnyErr {
-				assert.Error(t, err)
 				assert.Nil(t, got)
 				return
 			}
@@ -97,4 +78,77 @@ func TestClientEvaluate(t *testing.T) {
 			assert.Equal(t, tt.wantOrder, got)
 		})
 	}
+}
+
+func TestClientEvaluate_MalformedJSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{invalid json`))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, zap.NewNop())
+	client.httpClient.RetryMax = 0
+	got, err := client.Evaluate("12345")
+
+	assert.Error(t, err)
+	assert.Nil(t, got)
+}
+
+func TestClientEvaluate_429ReturnsRateLimitError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "30")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, zap.NewNop())
+	client.httpClient.RetryMax = 0
+
+	got, err := client.Evaluate("12345")
+	assert.Nil(t, got)
+	require.Error(t, err)
+
+	var rateLimitErr *RateLimitError
+	require.ErrorAs(t, err, &rateLimitErr)
+	assert.Equal(t, 30*time.Second, rateLimitErr.RetryAfter)
+}
+
+func TestClientEvaluate_429DefaultRetryAfter(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, zap.NewNop())
+	client.httpClient.RetryMax = 0
+
+	got, err := client.Evaluate("12345")
+	assert.Nil(t, got)
+	require.Error(t, err)
+
+	var rateLimitErr *RateLimitError
+	require.ErrorAs(t, err, &rateLimitErr)
+	assert.Equal(t, 60*time.Second, rateLimitErr.RetryAfter)
+}
+
+func TestClientEvaluate_RetriesExhausted(t *testing.T) {
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, zap.NewNop())
+	client.httpClient.RetryMax = 2
+	client.httpClient.RetryWaitMin = 10 * time.Millisecond
+	client.httpClient.Backoff = func(min, max time.Duration, attempt int, resp *http.Response) time.Duration {
+		return min
+	}
+
+	got, err := client.Evaluate("12345")
+	assert.Error(t, err)
+	assert.Nil(t, got)
+	assert.Equal(t, int32(3), atomic.LoadInt32(&attempts))
 }

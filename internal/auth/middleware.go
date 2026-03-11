@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"github.com/iliaonishchenko/gophermart/internal/models"
 	"log"
 	"net/http"
 )
@@ -32,7 +33,14 @@ func AuthMiddleware(jwtService *JwtService) func(http.Handler) http.Handler {
 	}
 }
 
-func GetUserUUID(ctx context.Context) (string, bool) {
-	uuid, ok := ctx.Value(UserUUIDKey).(string)
-	return uuid, ok
+func GetUserUUID(ctx context.Context) (string, error) {
+	val := ctx.Value(UserUUIDKey)
+	if val == nil {
+		return "", models.ErrNoUserInContext
+	}
+	uuid, ok := val.(string)
+	if !ok {
+		return "", models.ErrInvalidUserType
+	}
+	return uuid, nil
 }

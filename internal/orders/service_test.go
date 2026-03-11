@@ -8,6 +8,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/models"
 	"github.com/iliaonishchenko/gophermart/internal/orders/mocks"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"testing"
 	"time"
 )
@@ -53,7 +54,7 @@ func TestCreate(t *testing.T) {
 					Return(tt.resultOrder, tt.resultError)
 			}
 
-			svc := NewService(mockRepo)
+			svc := NewService(mockRepo, zap.NewNop())
 
 			order, err := svc.Create(context.Background(), tt.order)
 
@@ -97,7 +98,7 @@ func TestGet(t *testing.T) {
 				Get(gomock.Any(), &userUUID).
 				Return(tt.resultOrders, tt.resultError)
 
-			svc := NewService(mockRepo)
+			svc := NewService(mockRepo, zap.NewNop())
 
 			orders, err := svc.Get(context.Background(), &userUUID)
 

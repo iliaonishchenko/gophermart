@@ -11,6 +11,7 @@ import (
 	"github.com/iliaonishchenko/gophermart/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func float32Ptr(f float32) *float32 {
@@ -25,7 +26,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.TruncateAll(t)
 
 			user := tdb.CreateTestUser(t, "alice", "hash")
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			order := &models.Order{
 				Number: "12345678903",
@@ -44,7 +45,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.TruncateAll(t)
 
 			user := tdb.CreateTestUser(t, "bob", "hash")
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			order1 := &models.Order{Number: "12345678903", UserID: *user.ID, Status: models.OrderStatusNew}
 			_, err := repo.Create(context.Background(), order1)
@@ -62,7 +63,7 @@ func TestRepositoryIntegration(t *testing.T) {
 
 			user1 := tdb.CreateTestUser(t, "charlie", "hash")
 			user2 := tdb.CreateTestUser(t, "dave", "hash")
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			order1 := &models.Order{Number: "12345678903", UserID: *user1.ID, Status: models.OrderStatusNew}
 			_, err := repo.Create(context.Background(), order1)
@@ -76,7 +77,7 @@ func TestRepositoryIntegration(t *testing.T) {
 		})
 
 		t.Run("nil_order", func(t *testing.T) {
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			_, err := repo.Create(context.Background(), nil)
 
@@ -90,7 +91,7 @@ func TestRepositoryIntegration(t *testing.T) {
 
 			user1 := tdb.CreateTestUser(t, "alice", "hash")
 			user2 := tdb.CreateTestUser(t, "bob", "hash")
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			o1 := &models.Order{Number: "100", UserID: *user1.ID, Status: models.OrderStatusNew}
 			_, err := repo.Create(context.Background(), o1)
@@ -118,7 +119,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.TruncateAll(t)
 
 			user := tdb.CreateTestUser(t, "alice", "hash")
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			orders, err := repo.Get(context.Background(), user.ID)
 
@@ -132,7 +133,7 @@ func TestRepositoryIntegration(t *testing.T) {
 			tdb.TruncateAll(t)
 
 			user := tdb.CreateTestUser(t, "alice", "hash")
-			repo := NewRepository(tdb.DB)
+			repo := NewRepository(tdb.DB, zap.NewNop())
 
 			order := &models.Order{Number: "12345678903", UserID: *user.ID, Status: models.OrderStatusNew}
 			_, err := repo.Create(context.Background(), order)

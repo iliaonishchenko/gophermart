@@ -6,22 +6,19 @@ import (
 	"time"
 )
 
-var Log *zap.Logger = zap.NewNop()
-
-func Initialize(level string) error {
+func Initialize(level string) (*zap.Logger, error) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cfg := zap.NewProductionConfig()
 	cfg.Level = lvl
 	zl, err := cfg.Build()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	Log = zl
-	return nil
+	return zl, nil
 }
 
 type (
@@ -47,34 +44,36 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
-func WithLogger(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		uri := r.RequestURI
-		method := r.Method
+func WithLogger(log *zap.Logger) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			uri := r.RequestURI
+			method := r.Method
 
-		rd := &responseData{
-			status: 0,
-			size:   0,
-		}
+			rd := &responseData{
+				status: 0,
+				size:   0,
+			}
 
-		rw := responseWriter{
-			ResponseWriter: w,
-			data:           rd,
-		}
+			rw := responseWriter{
+				ResponseWriter: w,
+				data:           rd,
+			}
 
-		h.ServeHTTP(&rw, r)
+			h.ServeHTTP(&rw, r)
 
-		duration := time.Since(start)
+			duration := time.Since(start)
 
-		Log.Info("incoming HTTP request",
-			zap.String("method", method),
-			zap.String("uri", uri),
-			zap.Int("status", rd.status),
-			zap.Duration("duration", duration),
-			zap.Int("size", rd.size),
-		)
-	})
+			log.Info("incoming HTTP request",
+				zap.String("method", method),
+				zap.String("uri", uri),
+				zap.Int("status", rd.status),
+				zap.Duration("duration", duration),
+				zap.Int("size", rd.size),
+			)
+		})
+	}
 }
 
 func Err(err error) zap.Field {

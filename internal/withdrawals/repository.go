@@ -6,17 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/iliaonishchenko/gophermart/internal/auth"
-	"github.com/iliaonishchenko/gophermart/internal/logger"
 	"github.com/iliaonishchenko/gophermart/internal/models"
 	"github.com/jackc/pgx/v5/pgconn"
+	"go.uber.org/zap"
 )
 
 type Repository struct {
-	db *sql.DB
+	db  *sql.DB
+	log *zap.Logger
 }
 
-func NewRepository(db *sql.DB) *Repository {
-	return &Repository{db: db}
+func NewRepository(db *sql.DB, log *zap.Logger) *Repository {
+	return &Repository{db: db, log: log}
 }
 
 func (r *Repository) Ping() error {
@@ -25,9 +26,9 @@ func (r *Repository) Ping() error {
 
 func (r *Repository) Create(ctx context.Context, withdrawalToCreate *models.Withdrawal) (*models.Withdrawal, error) {
 	query := "INSERT INTO withdrawals (order_number, user_id, sum) VALUES ($1, $2, $3) RETURNING processed_at"
-	userUUID, ok := auth.GetUserUUID(ctx)
-	if !ok {
-		return nil, errors.New("could not get user uuid")
+	userUUID, err := auth.GetUserUUID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get user uuid: %w", err)
 	}
 
 	if withdrawalToCreate == nil {
@@ -36,7 +37,6 @@ func (r *Repository) Create(ctx context.Context, withdrawalToCreate *models.With
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		logger.Log.Error("transaction begin failed", logger.Err(err))
 		return nil, err
 	}
 	defer tx.Rollback()
@@ -47,7 +47,6 @@ func (r *Repository) Create(ctx context.Context, withdrawalToCreate *models.With
 	if errors.Is(err, sql.ErrNoRows) {
 		balance = 0
 	} else if err != nil {
-		logger.Log.Error("check balance for withdrawal failed", logger.Err(err))
 		return nil, err
 	}
 
@@ -66,13 +65,11 @@ func (r *Repository) Create(ctx context.Context, withdrawalToCreate *models.With
 	updateBalanceQuery := "UPDATE balances SET balance = balance - $1 WHERE user_id = $2"
 	_, err = tx.ExecContext(ctx, updateBalanceQuery, withdrawalToCreate.Sum, userUUID)
 	if err != nil {
-		logger.Log.Error("failed to deduct balance after withdrawal", logger.Err(err))
 		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		logger.Log.Error("transaction commit failed", logger.Err(err))
 		return nil, err
 	}
 
@@ -81,9 +78,9 @@ func (r *Repository) Create(ctx context.Context, withdrawalToCreate *models.With
 
 func (r *Repository) Get(ctx context.Context) ([]*models.Withdrawal, error) {
 	query := "SELECT order_number, sum, processed_at FROM withdrawals WHERE user_id = $1 ORDER BY processed_at DESC"
-	userUUID, ok := auth.GetUserUUID(ctx)
-	if !ok {
-		return nil, errors.New("could not get user uuid")
+	userUUID, err := auth.GetUserUUID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not get user uuid: %w", err)
 	}
 	rows, err := r.db.QueryContext(ctx, query, userUUID)
 	if err != nil {
