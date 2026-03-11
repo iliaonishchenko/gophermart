@@ -1,0 +1,231 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: gophermart
+  description: gophermart service API in the OpenAPI 3.0 specification.
+servers:
+  - url: /
+    description: Current host
+paths:
+  /api/user/register:
+    post:
+      summary: register user
+      description: |
+        allows to register user with unique login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: пользователь успешно зарегистрирован и аутентифицирован
+          headers:
+            Authorization:
+              schema:
+                type: string
+              description: Bearer JWT токен
+        '400':
+          description: неверный формат запроса
+        '409':
+          description: логин уже занят
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/login:
+    post:
+      summary: login user
+      description: |
+        allows to login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: пользователь успешно аутентифицирован
+          headers:
+            Authorization:
+              schema:
+                type: string
+              description: Bearer JWT токен
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: неверная пара логин/пароль
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/orders:
+    post:
+      summary: upload users order
+      description: |
+        Загрузка номера заказа
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+           description: номер заказа уже был загружен этим пользователем
+        '202':
+           description: новый номер заказа принят в обработку
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: пользователь не аутентифицирован
+        '409':
+          description: номер заказа уже был загружен другим пользователем
+        '422':
+          description: неверный формат номера заказа
+        '500':
+          description: внутренняя ошибка сервера
+    get:
+      summary: get user orders
+      description: |
+        Получение списка загруженных номеров заказов.
+        Номера заказа в выдаче отсортированы по времени загрузки от самых новых к самым старым.
+        Формат даты — RFC3339.
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '204':
+          description: нет данных для ответа
+        '401':
+          description: пользователь не авторизован
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/balance:
+    get:
+      summary: Получение текущего баланса пользователя
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Balance"
+        '401':
+          description: пользователь не авторизован
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/balance/withdraw:
+    post:
+      summary: create a new withdrawal for user
+      description: |
+        запрос на списание средств
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawalRequest"
+      responses:
+        '200':
+          description: успешная обработка запроса
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: пользователь не авторизован
+        '402':
+          description: на счету недостаточно средств
+        '422':
+          description: неверный номер заказа
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/withdrawals:
+    get:
+      summary: Получение информации о выводе средств
+      description: |
+        Факты выводов в выдаче отсортированы по времени вывода от самых новых к самым старым. Формат даты — RFC3339.
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WithdrawalResponse"
+        '204':
+          description: нет ни одного списания.
+        '401':
+          description: пользователь не авторизован.
+        '500':
+          description: внутренняя ошибка сервера.
+components:
+  schemas:
+    Order:
+      type: object
+      required:
+        - number
+        - status
+        - uploaded_at
+      properties:
+        number:
+          type: string
+        status:
+          type: string
+          enum:
+            - NEW
+            - PROCESSING
+            - INVALID
+            - PROCESSED
+        accrual:
+          type: number
+        uploaded_at:
+          type: string
+          format: date-time
+    UserCredentials:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+    WithdrawalRequest:
+      type: object
+      required:
+        - order
+        - sum
+      properties:
+        order:
+          type: string
+        sum:
+          type: number
+    WithdrawalResponse:
+      type: object
+      required:
+        - order
+        - sum
+        - processed_at
+      properties:
+        order:
+          type: string
+        sum:
+          type: number
+        processed_at:
+          type: string
+    Balance:
+      type: object
+      required:
+        - current
+        - withdrawn
+      properties:
+        current:
+          type: number
+        withdrawn:
+          type: number
+
